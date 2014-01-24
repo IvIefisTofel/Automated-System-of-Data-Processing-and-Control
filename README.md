@@ -1,10 +1,3 @@
-{*******************************************************}
-{                                                       }
-{             Delphi & Google API                       }
-{                                                       }
-{          Copyright (c) WebDelphi.ru                   }
-{             All Rights Reserved.                      }
-{                                                       }
-{                                                       }
-{                                                       }
-{*******************************************************}
+
+
+          Automated System of Data Processing and Control
