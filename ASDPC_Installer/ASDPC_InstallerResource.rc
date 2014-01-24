@@ -1,0 +1,5 @@
+ASDPC_Updater APPL "Resources\\ASDPC_Updater.exe"
+libeay32 LIB "Resources\\libeay32.dll"
+msvcr71 LIB "Resources\\msvcr71.dll"
+Preloader IMAGE "Resources\\preloader.gif"
+ssleay32 LIB "Resources\\ssleay32.dll"
