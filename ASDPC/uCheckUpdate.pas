@@ -29,6 +29,7 @@ var
 
   AJSONValue: TJSONValue;
   Enum: TJSONPairEnumerator;
+  Response: TStringStream;
 
   updateList: TStringList;
   haveUpdates: Boolean;
@@ -57,8 +58,12 @@ begin
     end;
 
     userApp := TUserApp.Create;
-    appList := TAppList.Create;
     updateList := TStringList.Create;
+
+    Response := TStringStream.Create;
+    GoogleGet(getUpdates, Response);
+    appList := TAppList.Create((TJSONObject.ParseJSONValue(UTF8ToString(Response.DataString)) as TJSONObject).Get('items').JsonValue as TJSONArray);
+    Response.Free;
 
     appList.checkUpdate(updateList);
 

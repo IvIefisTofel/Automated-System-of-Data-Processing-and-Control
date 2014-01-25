@@ -11,7 +11,11 @@ const
   dateDiff: TDateTime = 0.166666666666667; // 4 часа (разница времени с сервером)
   json = myJson; // В uPasswords;
 
+{$IFDEF DEBUG}
+  ASDPCFolder = '0B5D6JxRh4bpkczhaSURnMHUyTTA';
+{$ELSE}
   ASDPCFolder = '0B5D6JxRh4bpkYlJRYmNSN2FPRDg';
+{$ENDIF}
   getUpdates =
     'https://www.googleapis.com/drive/v2/files?q=%22' + ASDPCFolder + '%22+in+parents+and+trashed+%3D+false&fields=items(downloadUrl%2Cid%2CmodifiedDate%2Ctitle)';
 
