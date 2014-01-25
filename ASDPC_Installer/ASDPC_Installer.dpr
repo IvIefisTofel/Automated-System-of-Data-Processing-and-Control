@@ -4,9 +4,9 @@ program ASDPC_Installer;
 
 uses
   Vcl.Forms,
-  uMain in 'uMain.pas' {Main},
   Vcl.Themes,
-  Vcl.Styles,
+  Vcl.Styles
+  uMain in 'uMain.pas' {Main},,
   uThread in 'uThread.pas';
 
 {$R *.res}

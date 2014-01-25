@@ -31,7 +31,6 @@ object Auth: TAuth
     NumGlyphs = 2
     TabOrder = 1
     OnClick = btnLoginClick
-    ExplicitLeft = 29
   end
   object Remember_Me: TCheckBox
     Left = 15

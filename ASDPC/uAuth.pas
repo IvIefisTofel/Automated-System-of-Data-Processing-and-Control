@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons, DBXJSON,
   System.Win.ScktComp, IdCoder, IdCoder3to4, IdCoder00E, IdCoderXXE,
-  ShellAPI, IdBaseComponent, uMain, uData, Registry, lib, ssl_openssl, httpsend;
+  ShellAPI, IdBaseComponent, uMain, uDataModule, Registry, lib, ssl_openssl, httpsend;
 
 const
   HTML = '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ru" lang="ru" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html;charset=utf-8"><title>ASDPC Status</title><link href="http://cs314717.vk.me/v314717880/6e7a/mcgnsEV8DUQ.jpg" rel="s'
@@ -74,7 +74,7 @@ var
 begin
   Result := False;
 
-  Response := UTF8ToString(send('GET', 'https://api.vk.com/method/groups.isMember?gid=' + gId + '&access_token='+ user.access_token));
+  Response := UTF8ToString(send('GET', 'https://api.vk.com/method/groups.isMember?gid=' + groupId + '&access_token='+ user.access_token));
   if Pos('error', Response) = 0 then
   begin
     jObj := TJSONObject.ParseJSONValue(Response) as TJSONObject;

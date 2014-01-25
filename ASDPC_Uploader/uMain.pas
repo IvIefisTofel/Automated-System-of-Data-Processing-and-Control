@@ -3,11 +3,12 @@ unit uMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Generics.Collections, Vcl.Graphics, Vcl.Controls,
-  Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons, Vcl.ComCtrls,
-  Vcl.ExtCtrls, ShellApi,
-  uThread, uASDP_Update, uCheckUpdate, Vcl.Imaging.pngimage;
+  Windows, Messages, ShellApi, SysUtils, Variants, Classes, Generics.Collections,
+  Graphics, Controls, Forms, Dialogs, StdCtrls, Buttons, ComCtrls, ExtCtrls,
+  uHelper, uConnectServer, uDataModule, uUpdate, GIFImg, PNGImage;
+
+const
+  logIndent = ' ';
 
 type
   TMain = class(TForm)
@@ -16,8 +17,9 @@ type
     Icon: TImage;
     Log: TListBox;
     procedure UpdateBtnClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
     { Private declarations }
   public
@@ -29,6 +31,9 @@ type
 
 var
   Main: TMain;
+  appRestart: Boolean = False;
+  crLink: Boolean = False;
+  dateDiff: TDateTime;
 
 implementation
 
@@ -55,53 +60,67 @@ begin
   UpdateBtn.Caption := 'Выход';
 end;
 
+procedure TMain.FormCreate(Sender: TObject);
+var
+  Res: TResourceStream;
+  Gif: TGIFImage;
+begin
+  Res:=TResourceStream.Create(Hinstance, 'Preloader', 'IMAGE');
+  Gif := TGIFImage.Create;
+  Gif.LoadFromStream(Res);
+  Res.Free;
+
+  Gif.Animate := true;
+  Preloader.Picture.Assign(Gif);
+  Gif.Free;
+end;
+
 procedure TMain.FormShow(Sender: TObject);
 var
-  startThread: Boolean;
-  My: TCheckUpdate;
+  My: TConnectServer;
+  update: Boolean;
+  i: Integer;
 begin
-  startThread := False;
+  update := False;
   if ParamCount <> 0 then
-  begin
-    if ParamStr(1) = 'update' then
-      startThread := True;
-    if ParamStr(1) = 'updateAndRestart' then
+    for i := 1 to ParamCount do
     begin
-      startThread := True;
-      appRestart := True;
+      if ParamStr(i) = 'update' then
+        update := True
+      else if ParamStr(i) = 'restart' then
+        appRestart := True
+      else if ParamStr(i) = 'createLink' then
+        crLink := True;
     end;
-  end else
-    UpdateBtn.Enabled := True;
 
-  My := TCheckUpdate.Create(True);
+  My := TConnectServer.Create(True);
   My.Priority := tpNormal;
   My.FreeOnTerminate := True;
-  My.startThread := startThread;
+  My.update := update;
   My.Resume;
+end;
+
+procedure TMain.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  userApp.saveAppDirToRegistry;
+  userApp.Free;
+
+  appList.Free;
+
+  self_deletion;
 end;
 
 procedure TMain.UpdateBtnClick(Sender: TObject);
 var
-  My: TMyThread;
+  My: TUpdate;
 begin
   if UpdateBtn.Caption = 'Выход' then
     Main.Close;
 
-  My := TMyThread.Create(True);
+  My := TUpdate.Create(True);
   My.Priority := tpNormal;
   My.FreeOnTerminate := True;
   My.Resume;
-end;
-
-procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-begin
-  userApp.saveAppDirToRegistry;
-  userApp.Destroy;
-
-  Resources.Free;
-  WebDAV.Free;
-
-  self_deletion;
 end;
 
 end.

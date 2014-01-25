@@ -104,7 +104,6 @@ object Main: TMain
     Font.Name = 'Segoe Print'
     Font.Style = [fsBold]
     ParentFont = False
-    ReadOnly = True
     TabOrder = 0
     OnKeyDown = fPathKeyDown
   end

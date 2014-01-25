@@ -3,13 +3,13 @@ program ASDPC;
 uses
   Forms,
   Windows,
-  uAuth in 'uAuth.pas' {Auth},
-  Vcl.Themes,
-  Vcl.Styles,
+  Themes,
+  Styles,
   uMain in 'uMain.pas' {Main},
-  uData in 'uData.pas' {Data: TDataModule},
+  uAuth in 'uAuth.pas' {Auth},
+  uDataModule in 'uDataModule.pas' {Data: TDataModule},
   uCheckUpdate in 'uCheckUpdate.pas',
-  uASDP_Update in '..\Libs\uASDP_Update.pas',
+  uHelper in '..\Libs\uHelper.pas',
   uPasswords in '..\Libs\uPasswords.pas';
 
 {$R *.res}

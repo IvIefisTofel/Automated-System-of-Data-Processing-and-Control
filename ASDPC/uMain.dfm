@@ -73,7 +73,6 @@ object Main: TMain
     ParentFont = False
     TabOrder = 0
     OnClick = OkClick
-    ExplicitTop = 306
   end
   object Post: TRichEdit
     Left = 8
@@ -90,6 +89,5 @@ object Main: TMain
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 1
-    ExplicitHeight = 310
   end
 end

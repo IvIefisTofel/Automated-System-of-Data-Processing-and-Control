@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Menus, Vcl.ExtCtrls, Vcl.StdCtrls,
   Vcl.Buttons, Vcl.ComCtrls, ComObj,
-  uData, uCheckUpdate, uASDP_Update;
+  uDataModule, uCheckUpdate, uHelper;
 
 type
   TUser = record

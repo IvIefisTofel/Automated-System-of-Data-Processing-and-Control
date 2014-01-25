@@ -103,18 +103,18 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="uAuth.pas">
-            <Form>Auth</Form>
-        </DCCReference>
         <DCCReference Include="uMain.pas">
             <Form>Main</Form>
         </DCCReference>
-        <DCCReference Include="uData.pas">
+        <DCCReference Include="uAuth.pas">
+            <Form>Auth</Form>
+        </DCCReference>
+        <DCCReference Include="uDataModule.pas">
             <Form>Data</Form>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
         <DCCReference Include="uCheckUpdate.pas"/>
-        <DCCReference Include="..\Libs\uASDP_Update.pas"/>
+        <DCCReference Include="..\Libs\uHelper.pas"/>
         <DCCReference Include="..\Libs\uPasswords.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

@@ -3,7 +3,8 @@ unit uCheckUpdate;
 interface
 
 uses
-  Winapi.Windows, SysUtils, System.Classes, Vcl.Dialogs, ActiveX, ShellAPI;
+  Winapi.Windows, SysUtils, System.Classes, Vcl.Dialogs, ActiveX, ShellAPI,
+  StrUtils, DBXJSON;
 
 type
   TCheckUpdate = class(TThread)
@@ -18,43 +19,57 @@ type
 
 implementation
 
-uses uMain, uASDP_Update;
+uses uMain, uDataModule, uHelper;
 
 { TCheckUpdate }
 
 procedure TCheckUpdate.Execute;
 var
-  Str: String;
+  appDir: String;
+
+  AJSONValue: TJSONValue;
+  Enum: TJSONPairEnumerator;
+
   updateList: TStringList;
   haveUpdates: Boolean;
 begin
   try
-    WebDAV := TWebDAVSend.Create;
-    userApp := TUserApp.Create;
-    Resources := TWDResourceList.Create;
-    updateList := TStringList.Create;
-
-    Resources.Clear;
-    Str := WebDAV.PROPFIND(1, '');
-    if Length(Trim(Str)) > 0 then
-    begin
-      CoInitialize(nil);
-      ParseResources(Str);
-      CoUninitialize;
-
-      Resources.checkUpdate(updateList);
+    AJSONValue := TJSONObject.ParseJSONValue(json);
+    if Assigned(AJSONValue) then
+    try
+      Enum := TJSONObject(AJSONValue).GetEnumerator;
+      try
+        while Enum.MoveNext do
+          with Enum.Current do
+            case AnsiIndexStr(JsonString.Value, cFilePairs) of
+              0: Data.gOAuth.ClientSecret := JsonValue.Value;
+              1: Data.gOAuth.RedirectURI := JsonValue.Value;
+              2: Data.gOAuth.State := JsonValue.Value;
+              3: Data.gOAuth.LoginHint := JsonValue.Value;
+              4: Data.gOAuth.TokenInfo.Parse(TJSONObject(JsonValue).ToString);
+            end;
+        Data.gOAuth.RefreshToken;
+      finally
+        Enum.Free
+      end;
+    finally
+      AJSONValue.Free;
     end;
 
-    Str := userApp.appDir;
+    userApp := TUserApp.Create;
+    appList := TAppList.Create;
+    updateList := TStringList.Create;
+
+    appList.checkUpdate(updateList);
+
+    appDir := userApp.appDir;
     haveUpdates := updateList.Count > 0;
-    WebDAV.Destroy;
-    Resources.Destroy;
     userApp.Destroy;
     updateList.Destroy;
 
-    if haveUpdates and FileExists(Str + 'ASDPC_Updater.exe') then
+    if haveUpdates and FileExists(appDir + 'ASDPC_Updater.exe') then
     begin
-      ShellExecute(Main.Handle, nil, PChar(Str + 'ASDPC_Updater.exe'), 'updateAndRestart', PChar(Str), SW_NORMAL);
+      ShellExecute(Main.Handle, nil, PChar(appDir + 'ASDPC_Updater.exe'), 'update restart', PChar(appDir), SW_NORMAL);
       bClose := True;
       Synchronize(Main.Close);
     end else if force then

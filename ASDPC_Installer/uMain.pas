@@ -169,9 +169,9 @@ begin
   begin
     sPath := fPath.Text + arrFiles[1, 1] + arrExtenrions[1, 2];
     if AutoStart.Checked and FileExists(sPath) then
-      sOptions := 'updateAndRestart'
+      sOptions := 'update createLink restart'
     else
-      sOptions := 'update';
+      sOptions := 'update createLink';
     ShellExecute(Handle, nil, PChar(sPath), PChar(sOptions), nil, SW_SHOWNORMAL);
   end;
 end;

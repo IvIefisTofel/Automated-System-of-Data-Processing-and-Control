@@ -14,7 +14,8 @@ object Main: TMain
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
-  OnCloseQuery = FormCloseQuery
+  OnClose = FormClose
+  OnCreate = FormCreate
   OnShow = FormShow
   DesignSize = (
     485
@@ -64,7 +65,6 @@ object Main: TMain
     Width = 113
     Height = 25
     Caption = #1054#1073#1085#1086#1074#1080#1090#1100
-    Enabled = False
     Kind = bkOK
     NumGlyphs = 2
     TabOrder = 0
