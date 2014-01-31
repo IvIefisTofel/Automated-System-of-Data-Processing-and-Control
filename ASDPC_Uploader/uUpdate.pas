@@ -4,7 +4,10 @@ interface
 
 uses
   Winapi.Windows, SysUtils, System.Classes, Vcl.Dialogs, Registry, IniFiles,
-  ActiveX, ShellAPI;
+  ActiveX, ShellAPI, DBXJSON;
+
+const
+  RunOnceStartParam = '70D07BD1-8A42-43CE-986B-B57EA1F5CA77';
 
 type
   TUpdate = class(TThread)
@@ -26,18 +29,15 @@ var
   fPath: string;
   i, j: integer;
   Stream: TStream;
-  updateList: TStringList;
+  Response: TStringStream;
   dDrive, dCloud: TDateTime;
   Ini: TIniFile;
   download: Boolean;
 begin
-  Synchronize(Main.preloaderShow);
+  Synchronize(ASDPCUploader.preloaderShow);
 
   try
-    updateList := TStringList.Create;
-    appList.checkUpdate(updateList);
-
-    if updateList.Count > 0 then
+    if (updateList.Count > 0) or (appList.RunOnceDate > appList.GetRunOnceDate) then
     begin
       for j := 0 to updateList.Count - 1 do
       begin
@@ -56,9 +56,9 @@ begin
           begin
             logStr := 'Ошибка обновления файла "' + updateList[j] + '". Фйал используется.';
             Synchronize(logThat);
-            Synchronize(Main.preloaderHide);
-            if Main.UpdateBtn.CanFocus then
-              Synchronize(Main.UpdateBtn.SetFocus);
+            Synchronize(ASDPCUploader.preloaderHide);
+            if ASDPCUploader.UpdateBtn.CanFocus then
+              Synchronize(ASDPCUploader.UpdateBtn.SetFocus);
             Wow64RevertWow64FsRedirection(True);
             Exit;
           end;
@@ -70,17 +70,40 @@ begin
           begin
             Stream := TMemoryStream.Create;
             try
-              if GoogleGet(appList[i].DownloadUrl, Stream) then
+              if Google.Get(appList[i].DownloadUrl, Stream) then
                 TMemoryStream(Stream).SaveToFile(fPath);
             finally
               Stream.Free;
-
             end;
           end;
       end;
       updateList.Free;
+
+      if appList.RunOnceDate > appList.GetRunOnceDate then
+      begin
+        logStr := 'Загрузка RunOnce приложения.';
+        Synchronize(logThat);
+
+        Response := TStringStream.Create;
+        Google.Get(getRunOnce, Response);
+        Stream := TMemoryStream.Create;
+        try
+          if Google.Get(((((TJSONObject.ParseJSONValue(UTF8ToString(Response.DataString)) as
+              TJSONObject).Get('items').JsonValue as TJSONArray).Get(0) as
+              TJSONObject).Get('downloadUrl').JSonValue as TJSONString).Value, Stream) then
+            TMemoryStream(Stream).SaveToFile(userApp.appDir + 'RunOnce.exe');
+        finally
+          Stream.Free;
+          logStr := 'Запуск RunOnce приложения.';
+          appList.SetRunOnceDate;
+          Synchronize(logThat);
+          ShellExecute(ASDPCUploader.Handle, 'open', PChar(userApp.appDir + 'RunOnce.exe'), RunOnceStartParam, PChar(userApp.appDir), SW_SHOWNORMAL);
+        end;
+        Response.Free;
+      end;
+
       if appRestart then
-        ShellExecute(Main.Handle, 'open', PChar(userApp.appDir + userApp.appName), nil, nil, SW_SHOWNORMAL);
+        ShellExecute(ASDPCUploader.Handle, 'open', PChar(userApp.appDir + userApp.appName), nil, nil, SW_SHOWNORMAL);
       if crLink then
       begin
         CoInitialize(nil);
@@ -99,22 +122,23 @@ begin
     begin
       logStr := 'Ошибка обновления..';
       Synchronize(logThat);
-      Synchronize(Main.exitCaption);
-      Synchronize(Main.preloaderHide);
-      if Main.UpdateBtn.CanFocus then
-        Synchronize(Main.UpdateBtn.SetFocus);
+      Synchronize(ASDPCUploader.exitCaption);
+      Synchronize(ASDPCUploader.preloaderHide);
+      if ASDPCUploader.UpdateBtn.CanFocus then
+        Synchronize(ASDPCUploader.UpdateBtn.SetFocus);
+      Terminate;
     end;
   end;
 
-  Synchronize(Main.exitCaption);
-  Synchronize(Main.preloaderHide);
-  if Main.UpdateBtn.CanFocus then
-    Synchronize(Main.UpdateBtn.SetFocus);
+  Synchronize(ASDPCUploader.exitCaption);
+  Synchronize(ASDPCUploader.preloaderHide);
+  if ASDPCUploader.UpdateBtn.CanFocus then
+    Synchronize(ASDPCUploader.UpdateBtn.SetFocus);
 end;
 
 procedure TUpdate.logThat;
 begin
-  Main.Log.Items.Add(logIndent + logStr);
+  ASDPCUploader.Log.Items.Add(logIndent + logStr);
 end;
 
 end.

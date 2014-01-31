@@ -1,4 +1,4 @@
-object Main: TMain
+object ASDPCUploader: TASDPCUploader
   Left = 0
   Top = 0
   BorderIcons = [biSystemMenu, biMinimize]

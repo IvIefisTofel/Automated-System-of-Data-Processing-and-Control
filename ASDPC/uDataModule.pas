@@ -11,9 +11,6 @@ uses
   GifImg, PNGImage, Jpeg, Google.OAuth;
 
 const
-  cFilePairs: array [0 .. 4] of string = ('clientSecret', 'redirectUri',
-    'state', 'loginHint', 'tokenInfo');
-
   groupId = '57893525';
 
 type
@@ -39,7 +36,12 @@ type
     tSeparator3: TMenuItem;
     chkUpdate: TMenuItem;
     AuthShow: TTimer;
-    gOAuth: TOAuthClient;
+    ShowTimeTable: TMenuItem;
+    ShowWatsNew: TMenuItem;
+    tSeparator4: TMenuItem;
+    ShowGDrive: TMenuItem;
+    Wait: TTimer;
+    Save: TSaveDialog;
     procedure PopupPopup(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
     procedure RepeatNewsTimer(Sender: TObject);
@@ -52,11 +54,14 @@ type
     procedure CheckUpdateTimer(Sender: TObject);
     procedure chkUpdateClick(Sender: TObject);
     procedure AuthShowTimer(Sender: TObject);
+    procedure ShowTimeTableClick(Sender: TObject);
+    procedure ShowWatsNewClick(Sender: TObject);
+    procedure ShowGDriveClick(Sender: TObject);
+    procedure WaitTimer(Sender: TObject);
   private
     function GetAutoRun: Boolean;
     procedure SetAutoRun(Value: Boolean);
   public
-    procedure RefreshToken;
     function ReadDate: TPostData;
     procedure SaveDate(Data: TPostData);
     function replaceText(text: String): String;
@@ -67,42 +72,16 @@ type
 
 var
   Data: TData;
+  TimeTokenRefresh: TDateTime = -7274; // null
+  NewsLoaded: Boolean = False;
 
 implementation
 
-uses uMain, uAuth, uHelper;
+uses uMain, uAuth, uGoogle, uHelper, uTimeTable, uWatsNew, uDrive;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 {$R *.dfm}
-
-procedure TData.RefreshToken;
-var
-  AJSONValue: TJSONValue;
-  Enum: TJSONPairEnumerator;
-begin
-  AJSONValue := TJSONObject.ParseJSONValue(json);
-  if Assigned(AJSONValue) then
-  try
-    Enum := TJSONObject(AJSONValue).GetEnumerator;
-    try
-      while Enum.MoveNext do
-        with Enum.Current do
-          case AnsiIndexStr(JsonString.Value, cFilePairs) of
-            0: gOAuth.ClientSecret := JsonValue.Value;
-            1: gOAuth.RedirectURI := JsonValue.Value;
-            2: gOAuth.State := JsonValue.Value;
-            3: gOAuth.LoginHint := JsonValue.Value;
-            4: gOAuth.TokenInfo.Parse(TJSONObject(JsonValue).ToString);
-          end;
-      gOAuth.RefreshToken;
-    finally
-      Enum.Free
-    end;
-  finally
-    AJSONValue.Free;
-  end;
-end;
 
 function TData.GetAutoRun: Boolean;
 begin
@@ -130,30 +109,15 @@ begin
 end;
 
 procedure TData.AuthShowTimer(Sender: TObject);
-var
-  Reg: TRegistry;
 begin
   AuthShow.Enabled := False;
-
-  Reg := TRegistry.Create;
-  Reg.RootKey := HKEY_CURRENT_USER;
-
-  if Reg.KeyExists('\Software\ASDPC') then
-  begin
-    Reg.OpenKey('\Software\ASDPC', False);
-    Reg.DeleteValue('Login');
-    Reg.DeleteValue('Password');
-  end;
-
-  Reg.CloseKey;
-  Reg.Free;
 
   user := Auth.FindMe;
   if not ((user.access_token= 'nil') and (user.userId = 'nil')) then
   begin
     if Auth.VK_Valid then
     begin
-      Tray.Visible := True;
+      Wait.Enabled := True;
       Timer.Enabled := True;
       CheckUpdate.Enabled := True;
       formatNews;
@@ -165,7 +129,7 @@ end;
 
 procedure TData.CheckUpdateTimer(Sender: TObject);
 begin
-  Main.checkUpdate;
+  ASDPC_Main.checkUpdate;
 end;
 
 procedure TData.TrayClick(Sender: TObject);
@@ -174,14 +138,33 @@ begin
     Data.Tray.ShowBalloonHint;
 end;
 
+procedure TData.WaitTimer(Sender: TObject);
+begin
+  if uTimeTable.TimeTableLoaded and uWatsNew.WatsNewLoaded and NewsLoaded then
+  begin
+    Wait.Enabled := False;
+    Tray.Visible := True;
+  end;
+end;
+
 procedure TData.ShowNewsClick(Sender: TObject);
 begin
-  Main.showNews;
+  ASDPC_Main.showNews;
 end;
 
 procedure TData.GoVKClick(Sender: TObject);
 begin
   ShellExecute(0, 'open', 'http://vk.com/asouy2013', nil, nil, SW_SHOW);
+end;
+
+procedure TData.ShowTimeTableClick(Sender: TObject);
+begin
+  TimeTable.updateTimeTable(True);
+end;
+
+procedure TData.ShowWatsNewClick(Sender: TObject);
+begin
+  WatsNew.updateWatsNew(True);
 end;
 
 procedure TData.AutorunOnClick(Sender: TObject);
@@ -196,19 +179,26 @@ end;
 
 procedure TData.chkUpdateClick(Sender: TObject);
 begin
-  Main.checkUpdate(True);
+  ASDPC_Main.checkUpdate(True);
+end;
+
+procedure TData.ShowGDriveClick(Sender: TObject);
+begin
+  Drive.Show;
 end;
 
 procedure TData.ExitClick(Sender: TObject);
 begin
   bClose := True;
-  Main.Close;
+  ASDPC_Main.Close;
 end;
 
 procedure TData.PopupPopup(Sender: TObject);
 begin
   AutorunOn.Enabled := not AutoRun;
   AutorunOff.Enabled := AutoRun;
+  ShowTimeTable.Enabled := uTimeTable.TimeTableLoaded;
+  ShowWatsNew.Enabled := uWatsNew.WatsNewLoaded;
 end;
 
 { updateNews }
@@ -314,6 +304,9 @@ var
   text: TStringList;
   toTray: String;
 begin
+  TimeTable.updateTimeTable;
+  WatsNew.updateWatsNew;
+
   Response := UTF8ToString(send('GET', 'https://api.vk.com/method/wall.get?owner_id=-57893525&count=1&access_token=' + user.access_token));
   jObj := TJSONObject.ParseJSONValue(Response) as TJSONObject;
   if Assigned(jObj) then
@@ -334,7 +327,7 @@ begin
       toTray := text.Text;
 
     Data.Tray.BalloonHint := toTray;
-    Main.Post.Text := text.Text;
+    ASDPC_Main.Post.Text := text.Text;
   end;
 
   oldData := ReadDate;
@@ -353,6 +346,7 @@ begin
     Data.Tray.ShowBalloonHint;
     Data.RepeatNews.Enabled := True;
   end;
+  NewsLoaded := True;
 end;
 
 end.

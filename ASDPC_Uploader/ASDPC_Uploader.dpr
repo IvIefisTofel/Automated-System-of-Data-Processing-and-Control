@@ -9,12 +9,12 @@ uses
   Forms,
   Themes,
   Styles,
-  uMain in 'uMain.pas' {Main},
-  uDataModule in 'uDataModule.pas' {Data: TDataModule},
+  uMain in 'uMain.pas' {ASDPCUploader},
   uConnectServer in 'uConnectServer.pas',
   uUpdate in 'uUpdate.pas',
   uHelper in '..\Libs\uHelper.pas',
-  uPasswords in '..\Libs\uPasswords.pas';
+  uPasswords in '..\Libs\uPasswords.pas',
+  uGoogle in '..\Libs\uGoogle.pas';
 
 {$R *.res}
 
@@ -22,22 +22,21 @@ function AppExist: boolean;
 var
   wnd: HWND;
   cd: TCopyDataStruct;
-  s: String;
+  Params: String;
 begin
-  wnd := FindWindow('TSimpleDataBase', nil);
+  wnd := FindWindow('TASDPCUploader', nil);
   if wnd <> 0 then
   begin
-    result := true;
+    Result := True;
     if ParamCount = 0 then
       Exit;
-    s := ParamStr(1);
+    Params := ParamStr(1);
     cd.dwData := $BEBE;
-    cd.cbData := (1+Length(s))*SizeOf(String);
-    cd.lpData := PChar(s);
+    cd.cbData := (1 + Length(Params)) * SizeOf(String);
+    cd.lpData := PChar(Params);
     SendMessage(wnd, WM_COPYDATA, 0, Integer(@cd));
-  end
-  else
-    result := false;
+  end else
+    Result := False;
 end;
 
 begin
@@ -47,7 +46,6 @@ begin
   Application.MainFormOnTaskbar := True;
   TStyleManager.TrySetStyle('Metropolis UI Blue');
   Application.Title := 'ASDPC Uploader';
-  Application.CreateForm(TMain, Main);
-  Application.CreateForm(TData, Data);
+  Application.CreateForm(TASDPCUploader, ASDPCUploader);
   Application.Run;
 end.

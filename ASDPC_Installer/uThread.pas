@@ -47,9 +47,13 @@ procedure TMyThread.Execute;
 
 var
   i: Integer;
+  Reg: TRegistry;
 begin
   try
     Synchronize(Main.preloaderShow);
+
+    if Copy(fInstallPath, Length(fInstallPath), 1) <> '\' then
+      fInstallPath := fInstallPath + '\';
 
     for i := 1 to Length(uMain.arrFiles) do
     begin
@@ -59,6 +63,24 @@ begin
     end;
 
     installed := True;
+
+    Reg := TRegistry.Create;
+
+    Reg.RootKey := HKEY_CURRENT_USER;
+    Reg.OpenKey('\Software\ASDPC', True);
+    Reg.WriteString('appDir', fInstallPath);
+
+    Reg.RootKey := HKEY_LOCAL_MACHINE;
+
+    Reg.OpenKey('SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ASDPC', True);
+    Reg.WriteString('DisplayName', 'Automated System of Data Processing and Control');
+    Reg.WriteString('DisplayIcon', appDir + 'ASDPC.exe');
+    Reg.WriteString('DisplayVersion', '1.0.3');
+    Reg.WriteString('UninstallString', appDir + 'Uninstall.exe');
+
+    Reg.CloseKey;
+    Reg.Free;
+
     Synchronize(Main.Close);
   except
     on E: Exception do

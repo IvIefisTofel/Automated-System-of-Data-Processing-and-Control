@@ -3,10 +3,10 @@ unit uAuth;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons, DBXJSON,
-  System.Win.ScktComp, IdCoder, IdCoder3to4, IdCoder00E, IdCoderXXE,
-  ShellAPI, IdBaseComponent, uMain, uDataModule, Registry, lib, ssl_openssl, httpsend;
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Buttons, ScktComp, ShellAPI,
+  DBXJSON, Registry, lib, ssl_openssl, httpsend,
+  uMain, uDataModule;
 
 const
   HTML = '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ru" lang="ru" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html;charset=utf-8"><title>ASDPC Status</title><link href="http://cs314717.vk.me/v314717880/6e7a/mcgnsEV8DUQ.jpg" rel="s'
@@ -89,10 +89,10 @@ begin
           if Assigned(jObj) then
           begin
             jObj := (jObj.Get(0).JsonValue as TJSONArray).Get(0) as TJSONObject;
-            Main.UserInfo.Caption := 'Вы авторизованы как'#13#10
+            ASDPC_Main.UserInfo.Caption := 'Вы авторизованы как'#13#10
               + (jObj.Get('first_name').JsonValue as TJSONString).Value + ' '
               + (jObj.Get('last_name').JsonValue as TJSONString).Value;
-            Data.downloadImage(StringReplace((jObj.Get('photo_medium').JsonValue as TJSONString).Value, '\', '', [rfReplaceAll, rfIgnoreCase]), Main.Avatar);
+            Data.downloadImage(StringReplace((jObj.Get('photo_medium').JsonValue as TJSONString).Value, '\', '', [rfReplaceAll, rfIgnoreCase]), ASDPC_Main.Avatar);
           end;
         end;
         if Remember_Me.Checked then
@@ -124,7 +124,7 @@ begin
     if Reg.ReadString('') <> '' then
       Result.userId := Reg.ReadString('');
     if Reg.ReadString('token') <> '' then
-      Result.access_token := Reg.ReadString('token');
+      Result.access_token := Decode(Reg.ReadString('token'));
   end;
 
   Reg.CloseKey;
@@ -153,7 +153,7 @@ begin
 
   Reg.OpenKey('\Software\ASDPC',True);
   Reg.WriteString('', user.userId);
-  Reg.WriteString('token', user.access_token);
+  Reg.WriteString('token', Encode(user.access_token));
 
   Reg.CloseKey;
   Reg.Free;
@@ -175,7 +175,7 @@ begin
   end else
   begin
     bClose := True;
-    Main.Close;
+    ASDPC_Main.Close;
   end;
 end;
 
@@ -213,8 +213,9 @@ begin
       SetForeGroundWindow(Auth.Handle);
       if VK_Valid then
       begin
-        Data.Tray.Visible := True;
-        Data.AutoRun := true;
+        Auth.Hide;
+        Data.Wait.Enabled := True;
+        Data.AutoRun := True;
         authResult := True;
         Auth.Close;
         Exit;

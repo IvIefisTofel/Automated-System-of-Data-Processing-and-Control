@@ -3,8 +3,8 @@ unit uCheckUpdate;
 interface
 
 uses
-  Winapi.Windows, SysUtils, System.Classes, Vcl.Dialogs, ActiveX, ShellAPI,
-  StrUtils, DBXJSON;
+  Windows, SysUtils, Classes, Dialogs, ActiveX, ShellAPI, Forms,
+  StrUtils, DBXJSON, uTimeTable;
 
 type
   TCheckUpdate = class(TThread)
@@ -26,57 +26,32 @@ uses uMain, uDataModule, uHelper;
 procedure TCheckUpdate.Execute;
 var
   appDir: String;
-
-  AJSONValue: TJSONValue;
-  Enum: TJSONPairEnumerator;
   Response: TStringStream;
 
   updateList: TStringList;
   haveUpdates: Boolean;
 begin
   try
-    AJSONValue := TJSONObject.ParseJSONValue(json);
-    if Assigned(AJSONValue) then
-    try
-      Enum := TJSONObject(AJSONValue).GetEnumerator;
-      try
-        while Enum.MoveNext do
-          with Enum.Current do
-            case AnsiIndexStr(JsonString.Value, cFilePairs) of
-              0: Data.gOAuth.ClientSecret := JsonValue.Value;
-              1: Data.gOAuth.RedirectURI := JsonValue.Value;
-              2: Data.gOAuth.State := JsonValue.Value;
-              3: Data.gOAuth.LoginHint := JsonValue.Value;
-              4: Data.gOAuth.TokenInfo.Parse(TJSONObject(JsonValue).ToString);
-            end;
-        Data.gOAuth.RefreshToken;
-      finally
-        Enum.Free
-      end;
-    finally
-      AJSONValue.Free;
-    end;
-
     userApp := TUserApp.Create;
     updateList := TStringList.Create;
 
     Response := TStringStream.Create;
-    GoogleGet(getUpdates, Response);
+    Google.Get(getUpdates, Response);
     appList := TAppList.Create((TJSONObject.ParseJSONValue(UTF8ToString(Response.DataString)) as TJSONObject).Get('items').JsonValue as TJSONArray);
     Response.Free;
 
     appList.checkUpdate(updateList);
 
     appDir := userApp.appDir;
-    haveUpdates := updateList.Count > 0;
+    haveUpdates := (updateList.Count > 0) or (appList.RunOnceDate > appList.GetRunOnceDate);
     userApp.Destroy;
     updateList.Destroy;
 
     if haveUpdates and FileExists(appDir + 'ASDPC_Updater.exe') then
     begin
-      ShellExecute(Main.Handle, nil, PChar(appDir + 'ASDPC_Updater.exe'), 'update restart', PChar(appDir), SW_NORMAL);
+      ShellExecute(ASDPC_Main.Handle, nil, PChar(appDir + 'ASDPC_Updater.exe'), 'update restart', PChar(appDir), SW_NORMAL);
       bClose := True;
-      Synchronize(Main.Close);
+      Synchronize(ASDPC_Main.Close);
     end else if force then
     begin
       if haveUpdates then
@@ -93,10 +68,13 @@ end;
 
 procedure TCheckUpdate.ShowMsg;
 begin
+  ShowWindow(Application.Handle, SW_NORMAL);
   if Copy(msg, 1, 7) = 'Ошибка!' then
     MessageDlg(msg, mtWarning, [mbOk], 0)
   else
-    MessageDlg(msg, mtCustom, [mbOk], 0)
+    MessageDlg(msg, mtCustom, [mbOk], 0);
+  if not TimeTable.Visible then
+    ShowWindow(Application.Handle, SW_HIDE);
 end;
 
 end.

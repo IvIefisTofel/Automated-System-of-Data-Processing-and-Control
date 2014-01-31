@@ -3,10 +3,9 @@ unit uMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Menus, Vcl.ExtCtrls, Vcl.StdCtrls,
-  Vcl.Buttons, Vcl.ComCtrls, ComObj,
-  uDataModule, uCheckUpdate, uHelper;
+  Windows, Messages, SysUtils, Variants, Classes, ComObj, Graphics, Controls,
+  Forms, Dialogs, Menus, ExtCtrls, StdCtrls, Buttons, ComCtrls,
+  uDataModule, uCheckUpdate, uGoogle, uHelper, uDrive;
 
 type
   TUser = record
@@ -14,7 +13,7 @@ type
     userId: String;
   end;
 
-  TMain = class(TForm)
+  TASDPC_Main = class(TForm)
     Ok: TBitBtn;
     GoToGroup: TLabel;
     Post: TRichEdit;
@@ -25,13 +24,14 @@ type
     procedure FormShow(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
+    procedure CopyData(var Msg: TWMCopyData); message WM_COPYDATA;
   public
     procedure showNews(const id: Integer = -1);
     procedure checkUpdate(const showErrMgs: Boolean = False);
   end;
 
 var
-  Main: TMain;
+  ASDPC_Main: TASDPC_Main;
   Response: string;
   user: TUser;
   oldData, newData: TPostData;
@@ -40,17 +40,30 @@ var
 
 implementation
 
-uses Registry, ShellApi, lib, ssl_openssl, httpsend;
+uses uTimeTable, Registry, ShellApi, lib, ssl_openssl, httpsend;
 
 {$R *.dfm}
 
-procedure TMain.showNews(const id: Integer);
+procedure TASDPC_Main.CopyData(var Msg: TWMCopyData);
+var
+  command: string;
+begin
+  command := PChar(Msg.CopyDataStruct.lpData);
+  SetForegroundWindow(Handle);
+  if command = 'exit' then
+  begin
+    bClose := True;
+    ASDPC_Main.Close;
+  end;
+end;
+
+procedure TASDPC_Main.showNews(const id: Integer);
 begin
   Position := poScreenCenter;
   Show;
 end;
 
-procedure TMain.checkUpdate(const showErrMgs: Boolean = False);
+procedure TASDPC_Main.checkUpdate(const showErrMgs: Boolean = False);
 var
   updater: TCheckUpdate;
 begin
@@ -61,12 +74,13 @@ begin
   updater.Resume;
 end;
 
-procedure TMain.FormCreate(Sender: TObject);
+procedure TASDPC_Main.FormCreate(Sender: TObject);
 begin
+  Google := TGoogle.Create;
   Data.AuthShow.Enabled := true;
 end;
 
-procedure TMain.FormShow(Sender: TObject);
+procedure TASDPC_Main.FormShow(Sender: TObject);
 begin
   if not HaveRead then
   begin
@@ -76,17 +90,20 @@ begin
 
   if Post.CanFocus then
     Post.SetFocus;
-  ShowWindow(Application.Handle, SW_HIDE);
+  if (not TimeTable.Visible) and (not Drive.Visible) then
+    ShowWindow(Application.Handle, SW_HIDE);
 end;
 
-procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+procedure TASDPC_Main.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   CanClose := bClose;
+  if CanClose then
+    Google.Free;
 end;
 
-procedure TMain.OkClick(Sender: TObject);
+procedure TASDPC_Main.OkClick(Sender: TObject);
 begin
-  Main.Hide;
+  ASDPC_Main.Hide;
 end;
 
 end.

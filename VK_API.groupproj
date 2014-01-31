@@ -1,0 +1,96 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{AA971C46-14AA-44F9-8270-513D72725160}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="RunOnce\RunOnce.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="ASDPC_Updater\ASDPC_Updater.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="ASDPC_Uploader\ASDPC_Uploader.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="ASDPC_Installer\ASDPC_Installer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="ASDPC\ASDPC.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Uninstall\Uninstall.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="RunOnce">
+        <MSBuild Projects="RunOnce\RunOnce.dproj"/>
+    </Target>
+    <Target Name="RunOnce:Clean">
+        <MSBuild Projects="RunOnce\RunOnce.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="RunOnce:Make">
+        <MSBuild Projects="RunOnce\RunOnce.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ASDPC_Updater">
+        <MSBuild Projects="ASDPC_Updater\ASDPC_Updater.dproj"/>
+    </Target>
+    <Target Name="ASDPC_Updater:Clean">
+        <MSBuild Projects="ASDPC_Updater\ASDPC_Updater.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ASDPC_Updater:Make">
+        <MSBuild Projects="ASDPC_Updater\ASDPC_Updater.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ASDPC_Uploader">
+        <MSBuild Projects="ASDPC_Uploader\ASDPC_Uploader.dproj"/>
+    </Target>
+    <Target Name="ASDPC_Uploader:Clean">
+        <MSBuild Projects="ASDPC_Uploader\ASDPC_Uploader.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ASDPC_Uploader:Make">
+        <MSBuild Projects="ASDPC_Uploader\ASDPC_Uploader.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ASDPC_Installer">
+        <MSBuild Projects="ASDPC_Installer\ASDPC_Installer.dproj"/>
+    </Target>
+    <Target Name="ASDPC_Installer:Clean">
+        <MSBuild Projects="ASDPC_Installer\ASDPC_Installer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ASDPC_Installer:Make">
+        <MSBuild Projects="ASDPC_Installer\ASDPC_Installer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ASDPC">
+        <MSBuild Projects="ASDPC\ASDPC.dproj"/>
+    </Target>
+    <Target Name="ASDPC:Clean">
+        <MSBuild Projects="ASDPC\ASDPC.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ASDPC:Make">
+        <MSBuild Projects="ASDPC\ASDPC.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Uninstall">
+        <MSBuild Projects="Uninstall\Uninstall.dproj"/>
+    </Target>
+    <Target Name="Uninstall:Clean">
+        <MSBuild Projects="Uninstall\Uninstall.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Uninstall:Make">
+        <MSBuild Projects="Uninstall\Uninstall.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="RunOnce;ASDPC_Updater;ASDPC_Uploader;ASDPC_Installer;ASDPC;Uninstall"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="RunOnce:Clean;ASDPC_Updater:Clean;ASDPC_Uploader:Clean;ASDPC_Installer:Clean;ASDPC:Clean;Uninstall:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="RunOnce:Make;ASDPC_Updater:Make;ASDPC_Uploader:Make;ASDPC_Installer:Make;ASDPC:Make;Uninstall:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

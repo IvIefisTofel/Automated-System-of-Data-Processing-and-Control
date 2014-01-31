@@ -19,7 +19,7 @@ type
 
 implementation
 
-uses uHelper, uMain, uUpdate, uDataModule;
+uses uHelper, uMain, uUpdate;
 
 { TCheckUpdate }
 
@@ -32,39 +32,15 @@ var
 
   AJSONValue: TJSONValue;
   Enum: TJSONPairEnumerator;
-
-  updateList: TStringList;
 begin
-  Synchronize(Main.preloaderShow);
+  Synchronize(ASDPCUploader.preloaderShow);
 
   logStr :='Подключение к серверу..';
   Synchronize(logThat);
 
   try
-    AJSONValue := TJSONObject.ParseJSONValue(json);
-    if Assigned(AJSONValue) then
-    try
-      Enum := TJSONObject(AJSONValue).GetEnumerator;
-      try
-        while Enum.MoveNext do
-          with Enum.Current do
-            case AnsiIndexStr(JsonString.Value, cFilePairs) of
-              0: Data.gOAuth.ClientSecret := JsonValue.Value;
-              1: Data.gOAuth.RedirectURI := JsonValue.Value;
-              2: Data.gOAuth.State := JsonValue.Value;
-              3: Data.gOAuth.LoginHint := JsonValue.Value;
-              4: Data.gOAuth.TokenInfo.Parse(TJSONObject(JsonValue).ToString);
-            end;
-        Data.gOAuth.RefreshToken;
-      finally
-        Enum.Free
-      end;
-    finally
-      AJSONValue.Free;
-    end;
-
     Response := TStringStream.Create;
-    GoogleGet(getUpdates, Response);
+    Google.Get(getUpdates, Response);
     jObj := TJSONObject.ParseJSONValue(UTF8ToString(Response.DataString)) as TJSONObject;
     Response.Free;
     appList := TAppList.Create(jObj.Get('items').JsonValue as TJSONArray);
@@ -79,7 +55,7 @@ begin
     updateList := TStringList.Create;
     appList.checkUpdate(updateList);
 
-    if updateList.Count > 0 then
+    if (updateList.Count > 0) or (appList.RunOnceDate > appList.GetRunOnceDate) then
     begin
       if update then
       begin
@@ -91,16 +67,16 @@ begin
       begin
         logStr := 'На сервере есть обновления.';
         Synchronize(logThat);
-        Synchronize(Main.preloaderHide);
+        Synchronize(ASDPCUploader.preloaderHide);
       end;
     end else
     begin
       logStr := 'У вас установленна последняя версия приложения.';
       Synchronize(logThat);
-      Synchronize(Main.exitCaption);
-      Synchronize(Main.preloaderHide);
+      Synchronize(ASDPCUploader.exitCaption);
+      Synchronize(ASDPCUploader.preloaderHide);
       if appRestart then
-        ShellExecute(Main.Handle, 'open', PChar(userApp.appDir + userApp.appName), nil, nil, SW_SHOWNORMAL);
+        ShellExecute(ASDPCUploader.Handle, 'open', PChar(userApp.appDir + userApp.appName), nil, nil, SW_SHOWNORMAL);
       if crLink then
       begin
         CoInitialize(nil);
@@ -108,22 +84,22 @@ begin
         CoUninitialize;
       end;
     end;
-    updateList.Free;
   except
     on E:Exception do
     begin
-      Synchronize(Main.Log.Clear);
+      Synchronize(ASDPCUploader.Log.Clear);
       logStr :='Ошибка подключения к серверу..';
       Synchronize(logThat);
-      Synchronize(Main.exitCaption);
-      Synchronize(Main.preloaderHide);
+      Synchronize(ASDPCUploader.exitCaption);
+      Synchronize(ASDPCUploader.preloaderHide);
+      Terminate;
     end;
   end;
 end;
 
 procedure TConnectServer.logThat;
 begin
-  Main.Log.Items.Add(logIndent + logStr);
+  ASDPCUploader.Log.Items.Add(logIndent + logStr);
 end;
 
 end.

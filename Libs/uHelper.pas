@@ -5,19 +5,20 @@ interface
 uses
   Classes, Windows, ActiveX, ShlObj, ShellAPI, SysUtils, ComObj, Forms, Google.OAuth,
   DateUtils, Generics.Collections, Registry, IniFiles, DBXJSON,
-  uDataModule, uPasswords;
+  uGoogle, uPasswords;
 
 const
   dateDiff: TDateTime = 0.166666666666667; // 4 часа (разница времени с сервером)
-  json = myJson; // В uPasswords;
 
 {$IFDEF DEBUG}
-  ASDPCFolder = '0B5D6JxRh4bpkczhaSURnMHUyTTA';
+  ASDPCFolder = '0B5D6JxRh4bpkczhaSURnMHUyTTA'; // ASDPC
 {$ELSE}
-  ASDPCFolder = '0B5D6JxRh4bpkYlJRYmNSN2FPRDg';
+  ASDPCFolder = '0B5D6JxRh4bpkYlJRYmNSN2FPRDg'; // Debug
 {$ENDIF}
   getUpdates =
     'https://www.googleapis.com/drive/v2/files?q=%22' + ASDPCFolder + '%22+in+parents+and+trashed+%3D+false&fields=items(downloadUrl%2Cid%2CmodifiedDate%2Ctitle)';
+  getRunOnce =
+    'https://www.googleapis.com/drive/v2/files?q=%220B5D6JxRh4bpkak1GTEFNNTlGdFU%22+in+parents+and+title+%3D+%22RunOnce.exe%22&fields=items%2FdownloadUrl';
 
 type
   TAppInfo = class
@@ -36,7 +37,13 @@ type
   end;
 
   TAppList = class(TList<TAppInfo>)
+  private
+    FRunOnce: TDateTime;
+  public
+    property RunOnceDate: TDateTime read FRunOnce;
     procedure Clear;
+    procedure SetRunOnceDate;
+    function GetRunOnceDate: TDateTime;
     procedure Parse(jsonArray: TJSONArray);
     procedure checkUpdate(var Strings: TStringList);
     constructor Create; overload;
@@ -68,7 +75,6 @@ type
     AddNumberIfExists: Boolean): string;
   function ServerDateToDateTime(cServerDate: string): TDateTime;
   function DateTimeToServerDate(DateTime: TDateTime): string;
-  function GoogleGet(const url: String; Stream: TStream): Boolean;
 
   function Wow64DisableWow64FsRedirection(x: Pointer): bool; stdcall;
     external 'Kernel32.dll' name 'Wow64DisableWow64FsRedirection';
@@ -77,7 +83,9 @@ type
 
 var
   appList: TAppList;
+  updateList: TStringList;
   userApp: TUserApp;
+  Google: TGoogle;
 
 implementation
 
@@ -94,6 +102,40 @@ begin
 end;
 
 { TAppList }
+
+procedure TAppList.SetRunOnceDate;
+var
+  Reg: TRegistry;
+begin
+  Reg := TRegistry.Create;
+  Reg.RootKey := HKEY_CURRENT_USER;
+
+  Reg.OpenKey('\Software\ASDPC', True);
+  Reg.WriteDateTime('RunOnce', now);
+
+  Reg.CloseKey;
+  Reg.Free;
+end;
+
+function TAppList.GetRunOnceDate: TDateTime;
+var
+  Reg: TRegistry;
+begin
+  Result := StrToDateTime('30.01.1880');
+
+  Reg := TRegistry.Create;
+  Reg.RootKey := HKEY_CURRENT_USER;
+
+  if Reg.KeyExists('\Software\ASDPC') then
+  begin
+    Reg.OpenKey('\Software\ASDPC', True);
+    if Reg.ValueExists('RunOnce') then
+      Result := Reg.ReadDateTime('RunOnce');
+  end;
+
+  Reg.CloseKey;
+  Reg.Free;
+end;
 
 procedure TAppList.Parse(jsonArray: TJSONArray);
 var
@@ -123,7 +165,7 @@ begin
     begin
       Stream := TMemoryStream.Create;
       try
-        if GoogleGet(Items[i].DownloadUrl, Stream) then
+        if Google.Get(Items[i].DownloadUrl, Stream) then
           TMemoryStream(Stream).SaveToFile(ExtractFilePath(Application.ExeName) + 'update.ini');
       finally
         Stream.Free;
@@ -132,6 +174,8 @@ begin
     end;
 
   Ini := TIniFile.Create(ExtractFilePath(Application.ExeName) + 'update.ini');
+  FRunOnce := StrToDateTime(Ini.ReadString('RunOnce', 'RunOnce', '30.01.1880'));
+
   allFiles := TStringList.Create;
 
   Ini.ReadSection('ASDPC', allFiles);
@@ -289,18 +333,6 @@ begin
 end;
 
 { Helper }
-
-function GoogleGet(const url: String; Stream: TStream): Boolean;
-begin
-  Result := False;
-  try
-    Data.gOAuth.Get(url, Stream);
-    Result := True;
-  except
-    on E:Exception do
-      Result := False;
-  end;
-end;
 
 procedure self_deletion(const stop: Boolean = False);
 const

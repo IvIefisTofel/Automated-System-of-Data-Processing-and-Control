@@ -5,13 +5,13 @@ interface
 uses
   Windows, Messages, ShellApi, SysUtils, Variants, Classes, Generics.Collections,
   Graphics, Controls, Forms, Dialogs, StdCtrls, Buttons, ComCtrls, ExtCtrls,
-  uHelper, uConnectServer, uDataModule, uUpdate, GIFImg, PNGImage;
+  uHelper, uConnectServer, uGoogle, uUpdate, GIFImg, PNGImage;
 
 const
   logIndent = ' ';
 
 type
-  TMain = class(TForm)
+  TASDPCUploader = class(TForm)
     Preloader: TImage;
     UpdateBtn: TBitBtn;
     Icon: TImage;
@@ -21,16 +21,15 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
   private
-    { Private declarations }
+    procedure CopyData(var Msg: TWMCopyData); message WM_COPYDATA;
   public
-    { Public declarations }
     procedure preloaderShow;
     procedure preloaderHide;
     procedure exitCaption;
   end;
 
 var
-  Main: TMain;
+  ASDPCUploader: TASDPCUploader;
   appRestart: Boolean = False;
   crLink: Boolean = False;
   dateDiff: TDateTime;
@@ -41,30 +40,41 @@ implementation
 
 { TMain }
 
-procedure TMain.preloaderShow;
+procedure TASDPCUploader.CopyData(var Msg: TWMCopyData);
+var
+  command: string;
+begin
+  command := PChar(Msg.CopyDataStruct.lpData);
+  SetForegroundWindow(Handle);
+  if command = 'exit' then
+    ASDPCUploader.Close;
+end;
+
+procedure TASDPCUploader.preloaderShow;
 begin
   UpdateBtn.Enabled := False;
   Preloader.Show;
   Icon.Hide;
 end;
 
-procedure TMain.preloaderHide;
+procedure TASDPCUploader.preloaderHide;
 begin
   UpdateBtn.Enabled := True;
   Preloader.Hide;
   Icon.Show;
 end;
 
-procedure TMain.exitCaption;
+procedure TASDPCUploader.exitCaption;
 begin
   UpdateBtn.Caption := 'Выход';
 end;
 
-procedure TMain.FormCreate(Sender: TObject);
+procedure TASDPCUploader.FormCreate(Sender: TObject);
 var
   Res: TResourceStream;
   Gif: TGIFImage;
 begin
+  Google := TGoogle.Create;
   Res:=TResourceStream.Create(Hinstance, 'Preloader', 'IMAGE');
   Gif := TGIFImage.Create;
   Gif.LoadFromStream(Res);
@@ -75,7 +85,7 @@ begin
   Gif.Free;
 end;
 
-procedure TMain.FormShow(Sender: TObject);
+procedure TASDPCUploader.FormShow(Sender: TObject);
 var
   My: TConnectServer;
   update: Boolean;
@@ -100,22 +110,23 @@ begin
   My.Resume;
 end;
 
-procedure TMain.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TASDPCUploader.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   userApp.saveAppDirToRegistry;
   userApp.Free;
 
   appList.Free;
 
+  Google.Free;
   self_deletion;
 end;
 
-procedure TMain.UpdateBtnClick(Sender: TObject);
+procedure TASDPCUploader.UpdateBtnClick(Sender: TObject);
 var
   My: TUpdate;
 begin
   if UpdateBtn.Caption = 'Выход' then
-    Main.Close;
+    ASDPCUploader.Close;
 
   My := TUpdate.Create(True);
   My.Priority := tpNormal;

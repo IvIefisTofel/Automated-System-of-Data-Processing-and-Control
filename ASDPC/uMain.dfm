@@ -1,4 +1,4 @@
-object Main: TMain
+object ASDPC_Main: TASDPC_Main
   Left = 0
   Top = 0
   BorderIcons = [biMinimize, biMaximize]

@@ -34,6 +34,10 @@ object Data: TData
       Caption = #1055#1077#1088#1077#1081#1090#1080' '#1082' '#1075#1088#1091#1087#1087#1077
       OnClick = GoVKClick
     end
+    object ShowTimeTable: TMenuItem
+      Caption = #1055#1086#1082#1072#1079#1072#1090#1100' '#1088#1072#1089#1087#1080#1089#1072#1085#1080#1077
+      OnClick = ShowTimeTableClick
+    end
     object tSeparator2: TMenuItem
       Caption = '--'#1040#1074#1090#1086#1079#1072#1075#1088#1091#1079#1082#1072'--'
       Enabled = False
@@ -53,6 +57,18 @@ object Data: TData
     object chkUpdate: TMenuItem
       Caption = #1055#1088#1086#1074#1077#1088#1080#1090#1100' '#1086#1073#1085#1086#1074#1083#1077#1085#1080#1103
       OnClick = chkUpdateClick
+    end
+    object ShowWatsNew: TMenuItem
+      Caption = #1063#1090#1086' '#1085#1086#1074#1086#1075#1086
+      OnClick = ShowWatsNewClick
+    end
+    object tSeparator4: TMenuItem
+      Caption = '--Google Drive--'
+      Enabled = False
+    end
+    object ShowGDrive: TMenuItem
+      Caption = #1054#1090#1082#1088#1099#1090#1100' GDrive'
+      OnClick = ShowGDriveClick
     end
     object Separator: TMenuItem
       Caption = '-'
@@ -83,23 +99,13 @@ object Data: TData
     Left = 8
     Top = 72
   end
-  object gOAuth: TOAuthClient
-    RedirectURI = 'urn:ietf:wg:oauth:2.0:oob'
-    TokenInfo.DriveScopes.FullAccess = True
-    TokenInfo.DriveScopes.Readonly = False
-    TokenInfo.DriveScopes.FileAccess = False
-    TokenInfo.DriveScopes.AppsReadonly = False
-    TokenInfo.DriveScopes.ReadonlyMetadata = False
-    TokenInfo.DriveScopes.Install = False
-    TokenInfo.DriveScopes.Appdata = False
-    TokenInfo.CalendarScopes.FullAccess = False
-    TokenInfo.CalendarScopes.Readonly = False
-    TokenInfo.TasksScopes.FullAccess = False
-    TokenInfo.TasksScopes.Readonly = False
-    SaveFields = [sfClientSecret, sfRedirectURI, sfState, sfLoginHint]
-    DefaultContentType = ctJSON
-    ValidateOnLoad = False
-    OpenStartURL = False
+  object Wait: TTimer
+    Enabled = False
+    OnTimer = WaitTimer
+    Left = 72
+    Top = 72
+  end
+  object Save: TSaveDialog
     Left = 8
     Top = 128
   end
