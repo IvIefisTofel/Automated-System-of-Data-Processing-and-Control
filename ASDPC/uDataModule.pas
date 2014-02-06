@@ -8,7 +8,7 @@ uses
   Vcl.Menus, Vcl.ExtCtrls, Vcl.Dialogs,
   ShellAPI, AutorunReg, Registry, DBXJSON,
   lib, ssl_openssl, httpsend,
-  GifImg, PNGImage, Jpeg, Google.OAuth;
+  GifImg, PNGImage, Jpeg;
 
 const
   groupId = '57893525';

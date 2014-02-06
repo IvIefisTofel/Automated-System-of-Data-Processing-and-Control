@@ -3,12 +3,12 @@ unit uHelper;
 interface
 
 uses
-  Classes, Windows, ActiveX, ShlObj, ShellAPI, SysUtils, ComObj, Forms, Google.OAuth,
+  Classes, Windows, ActiveX, ShlObj, ShellAPI, SysUtils, ComObj, Forms,
   DateUtils, Generics.Collections, Registry, IniFiles, DBXJSON,
   uGoogle, uPasswords;
 
 const
-  dateDiff: TDateTime = 0.166666666666667; // 4 часа (разница времени с сервером)
+  dateDiff: TDateTime = 0.166666666666667; // 4 часа (разница во времени с сервером)
 
 {$IFDEF DEBUG}
   ASDPCFolder = '0B5D6JxRh4bpkczhaSURnMHUyTTA'; // ASDPC
