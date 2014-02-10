@@ -81,9 +81,10 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <VerInfo_Build>5</VerInfo_Build>
-        <VerInfo_Release>4</VerInfo_Release>
-        <VerInfo_Keys>CompanyName=;FileDescription=Automated System of Data Processing and Control;FileVersion=1.0.4.5;InternalName=;LegalCopyright=© MefisTofel;LegalTrademarks=;OriginalFilename=;ProductName=Automated System of Data Processing and Control;ProductVersion=1.0.4;Comments=</VerInfo_Keys>
+        <VerInfo_MinorVer>1</VerInfo_MinorVer>
+        <VerInfo_Build>12</VerInfo_Build>
+        <VerInfo_Release>1</VerInfo_Release>
+        <VerInfo_Keys>CompanyName=;FileDescription=Automated System of Data Processing and Control;FileVersion=1.1.1.12;InternalName=;LegalCopyright=© MefisTofel;LegalTrademarks=;OriginalFilename=;ProductName=Automated System of Data Processing and Control;ProductVersion=1.1.1;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
@@ -95,9 +96,10 @@
         <DCC_DebugInformation>false</DCC_DebugInformation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
-        <VerInfo_Build>5</VerInfo_Build>
-        <VerInfo_Release>4</VerInfo_Release>
-        <VerInfo_Keys>CompanyName=;FileDescription=Automated System of Data Processing and Control;FileVersion=1.0.4.5;InternalName=;LegalCopyright=© MefisTofel;LegalTrademarks=;OriginalFilename=;ProductName=Automated System of Data Processing and Control;ProductVersion=1.0.4;Comments=</VerInfo_Keys>
+        <VerInfo_MinorVer>1</VerInfo_MinorVer>
+        <VerInfo_Build>12</VerInfo_Build>
+        <VerInfo_Release>1</VerInfo_Release>
+        <VerInfo_Keys>CompanyName=;FileDescription=Automated System of Data Processing and Control;FileVersion=1.1.1.12;InternalName=;LegalCopyright=© MefisTofel;LegalTrademarks=;OriginalFilename=;ProductName=Automated System of Data Processing and Control;ProductVersion=1.1.1;Comments=</VerInfo_Keys>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
@@ -105,33 +107,42 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="uMain.pas">
-            <Form>ASDPC_Main</Form>
-        </DCCReference>
-        <DCCReference Include="uAuth.pas">
-            <Form>Auth</Form>
-        </DCCReference>
         <DCCReference Include="uDataModule.pas">
             <Form>Data</Form>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="uCheckUpdate.pas"/>
-        <DCCReference Include="..\Libs\uHelper.pas"/>
-        <DCCReference Include="..\Libs\uPasswords.pas"/>
-        <DCCReference Include="uWatsNew.pas">
-            <Form>WatsNew</Form>
+        <DCCReference Include="uMain.pas">
+            <Form>Main</Form>
+        </DCCReference>
+        <DCCReference Include="uPreloader.pas">
+            <Form>Preloader</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="uDrive.pas">
+            <Form>Drive</Form>
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="uTimeTable.pas">
             <Form>TimeTable</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="..\Libs\uGoogle.pas"/>
-        <DCCReference Include="uDrive.pas">
-            <Form>Drive</Form>
+        <DCCReference Include="uWatsNew.pas">
+            <Form>WatsNew</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="uDriveViewer.pas"/>
+        <DCCReference Include="uAuth.pas">
+            <Form>Auth</Form>
+        </DCCReference>
+        <DCCReference Include="uAuthValidate.pas"/>
+        <DCCReference Include="uUpdater.pas"/>
+        <DCCReference Include="uNewsLoader.pas"/>
+        <DCCReference Include="..\Libs\uGoogle.pas"/>
+        <DCCReference Include="..\Libs\uHelper.pas"/>
+        <DCCReference Include="..\Libs\uPasswords.pas"/>
+        <RcItem Include="Resources\preloader.gif">
+            <ResourceType>IMAGE</ResourceType>
+            <ResourceId>Preloader</ResourceId>
+        </RcItem>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

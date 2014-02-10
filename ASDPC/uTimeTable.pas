@@ -6,12 +6,23 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, Grids, AdvObj, BaseGrid, AdvGrid, StdCtrls, Buttons,
   Registry, DBXJSON,
-  uHelper, uDataModule;
+  uHelper;
 
 const
   getTimeTable = 'https://www.googleapis.com/drive/v2/files/0B5D6JxRh4bpkOTg1eDhNTFBEYU0?fields=downloadUrl%2CmodifiedDate';
 
 type
+  TLoader = class(TThread)
+  private
+    Response: TStringStream;
+  public
+    FShowAfterUpdate: Boolean;
+  protected
+    procedure Execute; override;
+    procedure LoadTimeTable;
+    procedure TimeTableShow;
+  end;
+
   TTimeTable = class(TForm)
     Grid: TAdvStringGrid;
     BitBtn1: TBitBtn;
@@ -32,13 +43,9 @@ type
     procedure OnLoadFile(Stream: TMemoryStream);
   end;
 
-var
-  TimeTable: TTimeTable;
-  TimeTableLoaded: Boolean = False;
-
 implementation
 
-uses uDrive;
+uses uMain;
 
 {$R *.dfm}
 
@@ -139,10 +146,23 @@ end;
 
 procedure TTimeTable.updateTimeTable(const ShowAfterUpdate: Boolean);
 var
+  Loader: TLoader;
+begin
+  FShowAfterUpdate := ShowAfterUpdate;
+  Loader := TLoader.Create(True);
+  Loader.Priority := tpNormal;
+  Loader.FShowAfterUpdate := ShowAfterUpdate;
+  Loader.FreeOnTerminate := True;
+  Loader.Resume;
+end;
+
+{ TLoader }
+
+procedure TLoader.Execute;
+var
   UpdateDate: TDateTime;
   jObj: TJSONObject;
   Reg: TRegistry;
-  Response: TStringStream;
 begin
   if not TimeTableLoaded then
   begin
@@ -156,30 +176,38 @@ begin
       UpdateDate := StrToDateTime('30.01.1880');
 
     Response := TStringStream.Create;
-    Google.Get(getTimeTable, Response);
+    Synchronize(LoadTimeTable);
     jObj := (TJSONObject.ParseJSONValue(UTF8ToString(Response.DataString)) as TJSONObject);
     Response.Clear;
     if (ServerDateToDateTime((jObj.Get('modifiedDate').JsonValue as TJSONString).Value) > UpdateDate)
       or not FileExists('cache\timetable.csv') then
     begin
-      FShowAfterUpdate := ShowAfterUpdate;
-      Google.Get((jObj.Get('downloadUrl').JsonValue as TJSONString).Value, OnLoadFile);
+      Google.Get((jObj.Get('downloadUrl').JsonValue as TJSONString).Value, TimeTable.OnLoadFile);
 
       Response.Free;
       Reg.CloseKey;
       Reg.Free;
     end else
     begin
-      LoadCSV;
+      Synchronize(TimeTable.LoadCSV);
       Response.Free;
       Reg.CloseKey;
       Reg.Free;
 
-      if ShowAfterUpdate then
-        TimeTable.Show;
+      Synchronize(TimeTableShow);
     end;
   end else
-  if ShowAfterUpdate then
+    Synchronize(TimeTableShow);
+end;
+
+procedure TLoader.LoadTimeTable;
+begin
+  Google.Get(getTimeTable, Response);
+end;
+
+procedure TLoader.TimeTableShow;
+begin
+  if FShowAfterUpdate then
     TimeTable.Show;
 end;
 

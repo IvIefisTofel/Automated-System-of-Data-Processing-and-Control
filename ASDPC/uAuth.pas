@@ -4,9 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, Buttons, ScktComp, ShellAPI,
-  DBXJSON, Registry, lib, ssl_openssl, httpsend,
-  uMain, uDataModule;
+  Dialogs, StdCtrls, Buttons, ScktComp, ShellAPI, ExtCtrls, Registry, DBXJSON,
+  uAuthValidate;
 
 const
   HTML = '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ru" lang="ru" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html;charset=utf-8"><title>ASDPC Status</title><link href="http://cs314717.vk.me/v314717880/6e7a/mcgnsEV8DUQ.jpg" rel="s'
@@ -22,30 +21,76 @@ const
   oAuth = 'https://oauth.vk.com/authorize?client_id=4135152&scope=groups,offline&redirect_uri=http://localhost:9004&display=page&response_type=token';
 
 type
+  TUser = record
+    access_token: String;
+    userId: String;
+    groupID: String;
+  end;
+
   TAuth = class(TForm)
     btnLogin: TBitBtn;
     Remember_Me: TCheckBox;
     Server: TServerSocket;
+    groupID: TLabeledEdit;
     procedure FormShow(Sender: TObject);
     procedure ServerClientRead(Sender: TObject; Socket: TCustomWinSocket);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure btnLoginClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+  private
+    procedure AuthDone;
+    procedure AuthError(ErrorMsg: String);
   public
-    function VK_Valid: Boolean;
     function FindMe: TUser;
     procedure FogetMe;
     procedure RememberMe(user: TUser);
+    procedure ComponentsEnable(const Enable: Boolean);
   end;
 
 var
-  Auth: TAuth;
-  authResult: Boolean = False;
+  AuthValidate: TAuthValidate;
+  VK_Valid: Boolean = False;
 
 implementation
+
+uses uMain;
 
 {$R *.dfm}
 
 { TAuth }
+
+procedure TAuth.AuthError(ErrorMsg: String);
+begin
+  VK_Valid := False;
+  ShowMessage(ErrorMsg);
+  ComponentsEnable(True);
+  Show;
+end;
+
+procedure TAuth.AuthDone;
+begin
+  VK_Valid := True;
+  Server.Active := False;
+  if user.groupID <> gID then
+  begin
+    Data.ShowTimeTable.Visible := False;
+    Data.bSeparator4.Visible := False;
+    Data.ShowGDrive.Visible := False;
+  end;
+  NewsLoader.Resume;
+  Updater.Resume;
+  AuthValidate.Terminate;
+  Destroy;
+end;
+
+procedure TAuth.ComponentsEnable(const Enable: Boolean);
+begin
+  Remember_Me.Enabled := Enable;
+  btnLogin.Enabled := Enable;
+  btnLogin.Enabled := Enable;
+  Visible := Enable;
+  Preloader.Visible := not Enable;
+end;
 
 function Encode(str: String): String;
 var
@@ -67,47 +112,6 @@ begin
   Result := str;
 end;
 
-function TAuth.VK_Valid: Boolean;
-var
-  jObj: TJSONObject;
-  Response: String;
-begin
-  Result := False;
-
-  Response := UTF8ToString(send('GET', 'https://api.vk.com/method/groups.isMember?gid=' + groupId + '&access_token='+ user.access_token));
-  if Pos('error', Response) = 0 then
-  begin
-    jObj := TJSONObject.ParseJSONValue(Response) as TJSONObject;
-    if Assigned(jObj) then
-      if StrToBool((jObj.Get(0).JsonValue as TJSONString).Value) then
-      begin
-        Result := True;
-        Response := UTF8ToString(send('GET', 'https://api.vk.com/method/users.get?uids=' + user.userId + '&fields=first_name,last_name,photo_medium&access_token='+ user.access_token));
-        if Pos('error', Response) = 0 then
-        begin
-          jObj := TJSONObject.ParseJSONValue(Response) as TJSONObject;
-          if Assigned(jObj) then
-          begin
-            jObj := (jObj.Get(0).JsonValue as TJSONArray).Get(0) as TJSONObject;
-            ASDPC_Main.UserInfo.Caption := 'Вы авторизованы как'#13#10
-              + (jObj.Get('first_name').JsonValue as TJSONString).Value + ' '
-              + (jObj.Get('last_name').JsonValue as TJSONString).Value;
-            Data.downloadImage(StringReplace((jObj.Get('photo_medium').JsonValue as TJSONString).Value, '\', '', [rfReplaceAll, rfIgnoreCase]), ASDPC_Main.Avatar);
-          end;
-        end;
-        if Remember_Me.Checked then
-          RememberMe(user)
-        else
-          FogetMe;
-      end else
-      begin
-        ShowMessage('Вы не являетесь студентом группы Б01-782-1.');
-        Remember_Me.Enabled := True;
-        btnLogin.Enabled := True;
-      end;
-  end;
-end;
-
 function TAuth.FindMe: TUser;
 var
   Reg: TRegistry;
@@ -125,6 +129,8 @@ begin
       Result.userId := Reg.ReadString('');
     if Reg.ReadString('token') <> '' then
       Result.access_token := Decode(Reg.ReadString('token'));
+    if Reg.ReadString('gID') <> '' then
+      Result.groupID := Reg.ReadString('gID');
   end;
 
   Reg.CloseKey;
@@ -138,7 +144,13 @@ begin
   Reg := TRegistry.Create;
   Reg.RootKey := HKEY_CURRENT_USER;
 
-  Reg.DeleteKey('\Software\ASDPC');
+  if Reg.KeyExists('\Software\ASDPC') then
+  begin
+    Reg.OpenKey('\Software\ASDPC', False);
+    Reg.DeleteValue('');
+    Reg.DeleteValue('gID');
+    Reg.DeleteValue('token');
+  end;
 
   Reg.CloseKey;
   Reg.Free;
@@ -153,35 +165,51 @@ begin
 
   Reg.OpenKey('\Software\ASDPC',True);
   Reg.WriteString('', user.userId);
+  if user.groupID = '' then
+    user.groupID := gID;
+  Reg.WriteString('gID', user.groupID);
   Reg.WriteString('token', Encode(user.access_token));
 
   Reg.CloseKey;
   Reg.Free;
 end;
 
+procedure TAuth.FormCreate(Sender: TObject);
+begin
+  user := FindMe;
+
+  AuthValidate := TAuthValidate.Create(True);
+  AuthValidate.Priority := tpNormal;
+  AuthValidate.OnError := AuthError;
+  AuthValidate.OnValid := AuthDone;
+  AuthValidate.FreeOnTerminate := False;
+  if not ((user.access_token= 'nil') and (user.userId = 'nil')) then
+  begin
+    AuthValidate.Resume;
+  end else
+    Auth.Show;
+end;
+
 procedure TAuth.FormShow(Sender: TObject);
 begin
+  ComponentsEnable(True);
   Server.Active := True;
+  if user.groupID <> '' then
+    groupID.Text := user.groupID
+  else
+    groupID.Text := gID;
 end;
 
 procedure TAuth.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  Server.Active := False;
-  if authResult then
-  begin
-    Data.Timer.Enabled := True;
-    Data.CheckUpdate.Enabled := True;
-    Data.formatNews;
-  end else
-  begin
-    bClose := True;
-    ASDPC_Main.Close;
-  end;
+  AuthValidate.Terminate;
+  bClose := True;
+  Main.Close;
 end;
 
 procedure TAuth.ServerClientRead(Sender: TObject; Socket: TCustomWinSocket);
 var
-  Response, sError, ReceiveText, GET, request: String;
+  ReceiveText, Response, Request, sError, GET: String;
 begin
   ReceiveText := UTF8ToString(Socket.ReceiveText);
 
@@ -201,27 +229,20 @@ begin
       user.userId := GET;
       Delete(user.userId, 1, Pos('user_id=', user.userId) + Length('user_id=') - 1);
 
-      request := StringReplace(HTML, '{javascript}', jsOkay,
+      Request := StringReplace(HTML, '{javascript}', jsOkay,
         [rfReplaceAll, rfIgnoreCase]);
-      request := StringReplace(request, '{text}', 'Авторизация проканала))',
+      Request := StringReplace(Request, '{text}', 'Авторизация проканала))',
         [rfReplaceAll, rfIgnoreCase]);
 
-      Socket.SendText(UTF8Encode(request));
-      Server.Active := False;
+      Socket.SendText(UTF8Encode(Request));
+      Auth.Server.Active := False;
+      Auth.Server.Active := True;
 
       Sleep(3000);
       SetForeGroundWindow(Auth.Handle);
-      if VK_Valid then
-      begin
-        Auth.Hide;
-        Data.Wait.Enabled := True;
-        Data.AutoRun := True;
-        authResult := True;
-        Auth.Close;
-        Exit;
-      end;
-    end
-    else
+
+      AuthValidate.Resume;
+    end else
     begin
       if Pos('error_description', GET) <> 0 then
         sError := GET;
@@ -229,39 +250,41 @@ begin
         Length('error_description=') - 1);
       sError := StringReplace(sError, '%20', ' ', [rfReplaceAll, rfIgnoreCase]);
 
-      request := StringReplace(HTML, '{javascript}', jsOkay,
+      Request := StringReplace(HTML, '{javascript}', jsOkay,
         [rfReplaceAll, rfIgnoreCase]);
-      request := StringReplace(request, '{text}', sError,
+      Request := StringReplace(Request, '{text}', sError,
         [rfReplaceAll, rfIgnoreCase]);
 
-      Socket.SendText(UTF8Encode(request));
-      Server.Active := False;
+      Socket.SendText(UTF8Encode(Request));
+      Auth.Server.Active := False;
+      Auth.Server.Active := True;
 
       Sleep(3000);
       SetForeGroundWindow(Auth.Handle);
-      ShowMessage('Ошибка авторизации.'#13#10'Причина: ' + sError);
-      Remember_Me.Enabled := True;
-      btnLogin.Enabled := True;
+
+      AuthError('Ошибка авторизации.'#13#10'Причина: ' + sError);
     end;
-  end
-  else
+  end else
   begin
-    request := StringReplace(HTML, '{javascript}', jsRedirect,
+    Request := StringReplace(HTML, '{javascript}', jsRedirect,
       [rfReplaceAll, rfIgnoreCase]);
-    request := StringReplace(request, '{text}', 'Еще один шажок.........',
+    Request := StringReplace(Request, '{text}', 'Еще один шажок.........',
       [rfReplaceAll, rfIgnoreCase]);
 
-    Socket.SendText(UTF8Encode(request));
-    Server.Active := False;
-    Server.Active := True;
+    Socket.SendText(UTF8Encode(Request));
+    Auth.Server.Active := False;
+    Auth.Server.Active := True;
   end;
 end;
 
 procedure TAuth.btnLoginClick(Sender: TObject);
 begin
-  Remember_Me.Enabled := False;
-  btnLogin.Enabled := False;
-  ShellExecute(Handle, 'open', oAuth, nil, nil, 0);
+  ComponentsEnable(False);
+  user.groupID := groupID.Text;
+  if (user.access_token = 'nil') or (user.userId = 'nil') or (user.groupID = '') then
+    ShellExecute(Handle, 'open', oAuth, nil, nil, 0)
+  else
+    AuthValidate.Resume;
 end;
 
 end.

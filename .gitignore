@@ -1,7 +1,8 @@
-*.dcu
+п»ї*.dcu
 *.local
 *.exe
 *.identcache
+*.vlb
 
 *.patch
 *.diff
@@ -17,4 +18,4 @@ uPasswords.pas
 
 .git
 
-Заготовки
+Р—Р°РіРѕС‚РѕРІРєРё

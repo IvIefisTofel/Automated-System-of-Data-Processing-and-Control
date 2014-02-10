@@ -6,12 +6,23 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, Buttons, ComCtrls,
   Registry, DBXJSON,
-  uHelper, uDataModule, uTimeTable, uDrive;
+  uHelper;
 
 const
   getWatsNew = 'https://www.googleapis.com/drive/v2/files/0B5D6JxRh4bpkakltVzk0dDFpdnM?fields=downloadUrl%2CmodifiedDate';
 
 type
+  TLoader = class(TThread)
+  private
+    Response: TStringStream;
+  public
+    FShowAfterUpdate: Boolean;
+  protected
+    procedure Execute; override;
+    procedure LoadWatsNew;
+    procedure WatsNewShow;
+  end;
+
   TWatsNew = class(TForm)
     News: TRichEdit;
     LabelWatsNew: TLabel;
@@ -27,19 +38,18 @@ type
   end;
 
 var
-  WatsNew: TWatsNew;
   UpdateDate: TDateTime;
-  WatsNewLoaded: Boolean = False;
   Stream: TStream;
 
 implementation
+
+uses uMain;
 
 {$R *.dfm}
 
 procedure TWatsNew.FormShow(Sender: TObject);
 begin
-  if (not TimeTable.Visible) and (not Drive.Visible) then
-    ShowWindow(Application.Handle, SW_HIDE);
+  Main.ShowTaskBar;
 end;
 
 procedure TWatsNew.OkClick(Sender: TObject);
@@ -78,9 +88,21 @@ end;
 
 procedure TWatsNew.updateWatsNew(const ShowAfterUpdate: Boolean);
 var
+  Loader: TLoader;
+begin
+  Loader := TLoader.Create(True);
+  Loader.Priority := tpNormal;
+  Loader.FShowAfterUpdate := ShowAfterUpdate;
+  Loader.FreeOnTerminate := True;
+  Loader.Resume;
+end;
+
+{ TLoader }
+
+procedure TLoader.Execute;
+var
   jObj: TJSONObject;
   Reg: TRegistry;
-  Response: TStringStream;
 begin
   if not WatsNewLoaded then
   begin
@@ -94,30 +116,39 @@ begin
       UpdateDate := StrToDateTime('30.01.1880');
 
     Response := TStringStream.Create;
-    Google.Get(getWatsNew, Response);
+    Synchronize(LoadWatsNew);
     jObj := (TJSONObject.ParseJSONValue(UTF8ToString(Response.DataString)) as TJSONObject);
     Response.Clear;
     if (ServerDateToDateTime((jObj.Get('modifiedDate').JsonValue as TJSONString).Value) > UpdateDate)
       or not FileExists('cache\watsnew.txt') then
     begin
-      Google.Get((jObj.Get('downloadUrl').JsonValue as TJSONString).Value, OnLoadFile);
+      Google.Get((jObj.Get('downloadUrl').JsonValue as TJSONString).Value, WatsNew.OnLoadFile);
 
       Response.Free;
       Reg.CloseKey;
       Reg.Free;
     end else
     begin
-      LoadWatsNew;
+      Synchronize(WatsNew.LoadWatsNew);
 
       Response.Free;
       Reg.CloseKey;
       Reg.Free;
 
-      if ShowAfterUpdate then
-        WatsNew.Show;
+      Synchronize(WatsNewShow);
     end;
   end else
-  if ShowAfterUpdate then
+    Synchronize(WatsNewShow);
+end;
+
+procedure TLoader.LoadWatsNew;
+begin
+  Google.Get(getWatsNew, Response);
+end;
+
+procedure TLoader.WatsNewShow;
+begin
+  if FShowAfterUpdate then
     WatsNew.Show;
 end;
 

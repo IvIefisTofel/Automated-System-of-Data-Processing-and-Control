@@ -82,7 +82,7 @@ type
     OnGetToken: TNotifyEvent;
     constructor Create;
     destructor Destroy;
-    function Get(const AURL: String; Response: TStream): Boolean; overload;
+    function Get(const AURL: String; Response: TStream; const ClearHeaders: Boolean = False): Boolean; overload;
     procedure Get(const AURL: String; OnGet: TOnGet = nil) overload;
     procedure GetFile(const AURL: String; FileToSave: String; pBarParams: TPBarParams;
       const CreatePBar: Boolean = False; OnGet: TOnGet = nil);
@@ -119,17 +119,20 @@ begin
   HTTP.Free;
 end;
 
-function TGoogle.Get(const AURL: String; Response: TStream): Boolean;
+function TGoogle.Get(const AURL: String; Response: TStream; const ClearHeaders: Boolean): Boolean;
 begin
   Result := False;
   try
-    if (StrToInt(FormatDateTime('n', now - FTokenRefresh)) > 50) or
-      (FormatDateTime('dd.mm.yyyy', now) <> FormatDateTime('dd.mm.yyyy', FTokenRefresh)) then
-      refreshToken;
-
     HTTP.Request.CustomHeaders.Clear;
-    HTTP.Request.CustomHeaders.Add('Authorization: ' + FTokenType
-      + ' ' + FAccessToken);
+    if not ClearHeaders then
+    begin
+      if (StrToInt(FormatDateTime('n', now - FTokenRefresh)) > 50) or
+        (FormatDateTime('dd.mm.yyyy', now) <> FormatDateTime('dd.mm.yyyy', FTokenRefresh)) then
+        refreshToken;
+
+      HTTP.Request.CustomHeaders.Add('Authorization: ' + FTokenType
+        + ' ' + FAccessToken);
+    end;
 
     HTTP.Get(AURL, Response);
     Result := True;

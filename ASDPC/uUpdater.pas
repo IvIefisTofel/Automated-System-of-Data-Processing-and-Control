@@ -1,32 +1,56 @@
-unit uCheckUpdate;
+unit uUpdater;
 
 interface
 
 uses
   Windows, SysUtils, Classes, Dialogs, ActiveX, ShellAPI, Forms,
-  StrUtils, DBXJSON, uTimeTable;
+  StrUtils, DBXJSON, uGoogle, uHelper;
 
 type
+  TUpdater = class(TThread)
+  protected
+    procedure Execute; override;
+  end;
+
   TCheckUpdate = class(TThread)
   private
     msg: String;
+    Response: TStringStream;
   public
-    force: Boolean;
+    showErrMsg: Boolean;
   protected
     procedure Execute; override;
+    procedure GetUpdateList;
     procedure ShowMsg;
   end;
 
 implementation
 
-uses uMain, uDataModule, uHelper;
+uses uMain;
+
+{ TUpdater }
+
+procedure TUpdater.Execute;
+var
+  CheckUpdate: TCheckUpdate;
+begin
+  Sleep(10000);
+  while not Terminated do
+  begin
+    CheckUpdate := TCheckUpdate.Create(True);
+    CheckUpdate.Priority := tpNormal;
+    CheckUpdate.showErrMsg := False;
+    CheckUpdate.FreeOnTerminate := True;
+    CheckUpdate.Resume;
+    Sleep(3600000);
+  end;
+end;
 
 { TCheckUpdate }
 
 procedure TCheckUpdate.Execute;
 var
   appDir: String;
-  Response: TStringStream;
 
   updateList: TStringList;
   haveUpdates: Boolean;
@@ -36,7 +60,7 @@ begin
     updateList := TStringList.Create;
 
     Response := TStringStream.Create;
-    Google.Get(getUpdates, Response);
+    Synchronize(GetUpdateList);
     appList := TAppList.Create((TJSONObject.ParseJSONValue(UTF8ToString(Response.DataString)) as TJSONObject).Get('items').JsonValue as TJSONArray);
     Response.Free;
 
@@ -49,10 +73,10 @@ begin
 
     if haveUpdates and FileExists(appDir + 'ASDPC_Updater.exe') then
     begin
-      ShellExecute(ASDPC_Main.Handle, nil, PChar(appDir + 'ASDPC_Updater.exe'), 'update restart', PChar(appDir), SW_NORMAL);
+      ShellExecute(Application.Handle, nil, PChar(appDir + 'ASDPC_Updater.exe'), 'update restart', PChar(appDir), SW_NORMAL);
       bClose := True;
-      Synchronize(ASDPC_Main.Close);
-    end else if force then
+      Synchronize(Main.Close);
+    end else if showErrMsg then
     begin
       if haveUpdates then
         msg := 'Ошибка!'#13#10'Updater не был найден'
@@ -62,8 +86,13 @@ begin
     end;
   except
     on E:Exception do
-      Exit;
+      Terminate;
   end;
+end;
+
+procedure TCheckUpdate.GetUpdateList;
+begin
+  Google.Get(getUpdates, Response);
 end;
 
 procedure TCheckUpdate.ShowMsg;
@@ -73,8 +102,7 @@ begin
     MessageDlg(msg, mtWarning, [mbOk], 0)
   else
     MessageDlg(msg, mtCustom, [mbOk], 0);
-  if not TimeTable.Visible then
-    ShowWindow(Application.Handle, SW_HIDE);
+  Main.ShowTaskBar;
 end;
 
 end.
