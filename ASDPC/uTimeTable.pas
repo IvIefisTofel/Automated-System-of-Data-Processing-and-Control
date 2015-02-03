@@ -40,7 +40,7 @@ type
   public
     procedure LoadCSV;
     procedure updateTimeTable(const ShowAfterUpdate: Boolean = False);
-    procedure OnLoadFile(Stream: TMemoryStream);
+    procedure OnLoadFile(Stream: TStream);
   end;
 
 implementation
@@ -92,7 +92,7 @@ procedure TTimeTable.LoadCSV;
 var
   i: Integer;
 begin
-  TimeTable.Grid.LoadFromCSV('cache\timetable.csv');
+  TimeTable.Grid.LoadFromCSV(saveTo + '\timetable.csv');
 
   TimeTable.Grid.AutoSizeColumns(False,10);
   TimeTable.Grid.InsertCols(0,1);
@@ -122,12 +122,12 @@ begin
   TimeTableLoaded := True;
 end;
 
-procedure TTimeTable.OnLoadFile(Stream: TMemoryStream);
+procedure TTimeTable.OnLoadFile(Stream: TStream);
 var
   Reg: TRegistry;
 begin
-  if not DirectoryExists(ExtractFilePath(ParamStr(0)) + 'cache') then
-    CreateDir(ExtractFilePath(ParamStr(0)) + 'cache');
+  if not DirectoryExists(saveTo) then
+    CreateDir(saveTo);
 
   Reg := TRegistry.Create;
   Reg.RootKey := HKEY_CURRENT_USER;
@@ -136,7 +136,7 @@ begin
   Reg.CloseKey;
   Reg.Free;
 
-  Stream.SaveToFile('cache\timetable.csv');
+  (Stream as TMemoryStream).SaveToFile(saveTo + '\timetable.csv');
 
   LoadCSV;
 
@@ -180,7 +180,7 @@ begin
     jObj := (TJSONObject.ParseJSONValue(UTF8ToString(Response.DataString)) as TJSONObject);
     Response.Clear;
     if (ServerDateToDateTime((jObj.Get('modifiedDate').JsonValue as TJSONString).Value) > UpdateDate)
-      or not FileExists('cache\timetable.csv') then
+      or not FileExists(saveTo + '\timetable.csv') then
     begin
       Google.Get((jObj.Get('downloadUrl').JsonValue as TJSONString).Value, TimeTable.OnLoadFile);
 

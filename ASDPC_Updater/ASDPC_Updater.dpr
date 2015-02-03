@@ -28,7 +28,7 @@ var
   sName, sOptions: String;
 
 begin
-  sName := ExtractFilePath(ParamStr(0)) + 'ASDPC_Uploader.exe';
+  sName := GetEnvironmentVariable('TEMP') + '\asdpc_cache\ASDPC_Uploader.exe';
   if ParamCount > 0 then
     for i := 1 to ParamCount do
       sOptions := sOptions + ' ' + ParamStr(i);

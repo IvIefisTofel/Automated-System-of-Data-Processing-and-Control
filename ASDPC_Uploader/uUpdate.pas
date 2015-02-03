@@ -44,12 +44,8 @@ begin
         logStr := 'Обновление файла "' + ExtractFileName(updateList[j]) + '"..';
         Synchronize(logThat);
 
-        if Pos(':', updateList[j]) <> 0 then
-          fPath := updateList[j]
-        else
-          fPath := userApp.appDir + updateList[j];
+        fPath := userApp.appDir + updateList[j];
 
-        Wow64DisableWow64FsRedirection(nil);
         if FileExists(fPath) then
         begin
           if not DeleteFile(fPath) then
@@ -59,13 +55,12 @@ begin
             Synchronize(ASDPCUploader.preloaderHide);
             if ASDPCUploader.UpdateBtn.CanFocus then
               Synchronize(ASDPCUploader.UpdateBtn.SetFocus);
-            Wow64RevertWow64FsRedirection(True);
             Exit;
           end;
         end;
-        Wow64RevertWow64FsRedirection(True);
 
         for i := 0 to appList.Count - 1 do
+        begin
           if ExtractFileName(updateList[j]) = appList[i].Title then
           begin
             Stream := TMemoryStream.Create;
@@ -75,7 +70,9 @@ begin
             finally
               Stream.Free;
             end;
+            Break;
           end;
+        end;
       end;
       updateList.Free;
 

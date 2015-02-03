@@ -19,7 +19,7 @@ const
   cTokenURL = 'https://accounts.google.com/o/oauth2/token';
 
 type
-  TOnGet = procedure(Stream: TMemoryStream) of object;
+  TOnGet = procedure(Stream: TStream) of object;
   TAfterDestroy = procedure(Top, Left, Height, Width: Integer) of object;
 
   TPBarParams = record
@@ -32,6 +32,7 @@ type
     Parent: TWinControl;
     BeforeCreate: TNotifyEvent;
     AfterDestroy: TAfterDestroy;
+    Size: Int64;
   end;
 
   TGoogle = class
@@ -46,7 +47,7 @@ type
       pBarParams: TPBarParams;
       pBarMax: Int64;
       pBarPos: Int64;
-      Stream: TMemoryStream;
+      Stream: TStream;
       FOnGet: TOnGet;
     public
       TokenType: String;
@@ -60,11 +61,8 @@ type
       procedure DoOnGet;
       procedure Work(ASender: TObject; AWorkMode: TWorkMode;
         AWorkCount: Int64);
-      procedure WorkBegin(ASender: TObject; AWorkMode: TWorkMode;
-        AWorkCountMax: Int64);
       procedure WorkEnd(ASender: TObject; AWorkMode: TWorkMode);
       procedure pBarWork;
-      procedure pBarWorkBegin;
       procedure pBarWorkEnd;
       procedure pBarCreate;
       procedure pBarDestroy;
@@ -91,7 +89,7 @@ type
 
 const
   EmptyPBarParams : TPBarParams = (Top: 0; Left: 0; Width: 0; Height: 0;
-    Anchors: []; AOwner: nil; Parent: nil; BeforeCreate: nil; AfterDestroy: nil;);
+    Anchors: []; AOwner: nil; Parent: nil; BeforeCreate: nil; AfterDestroy: nil; Size: 0);
 
 implementation
 
@@ -240,20 +238,24 @@ begin
       Synchronize(pBarCreate);
 
       HTTP.OnWork := Work;
-      HTTP.OnWorkBegin := WorkBegin;
       HTTP.OnWorkEnd := WorkEnd;
     end;
 
-    Stream := TMemoryStream.Create;
+    if Length(fName) > 0 then
+    begin
+      if FileExists(fName) then
+        Stream := TFileStream.Create(fName, fmOpenReadWrite)
+      else
+        Stream := TFileStream.Create(fName, fmCreate);
+    end
+    else
+      Stream := TMemoryStream.Create;
 
     HTTP.Request.CustomHeaders.Clear;
     HTTP.Request.CustomHeaders.Add('Authorization: ' + TokenType
       + ' ' + AccessToken);
 
     HTTP.Get(url, Stream);
-
-    if Length(fName) > 0 then
-      Stream.SaveToFile(fName);
 
     if CreatePBar then
       Synchronize(pBarDestroy);
@@ -263,6 +265,10 @@ begin
     SSLIOHandler.Free;
     HTTP.Free;
   except
+    on E: EIdHTTPProtocolException do
+    begin
+      ShowMessage(Format('Error %s(%d) happened. Message is: %s', [e.classname, e.ErrorCode, e.ErrorMessage]));
+    end;
     on E: Exception do
     begin
       if pBarCreated and CreatePBar then
@@ -291,9 +297,26 @@ begin
   pBar.Width := pBarParams.Width;
   pBar.Height := pBarParams.Height;
   pBar.Anchors := pBarParams.Anchors;
+  pBar.Maximum := pBarParams.Size;
+  pBarMax := pBarParams.Size;
 
   pBar.Step := 1;
-  pBar.Appearance.ProgressFill.Color := clBlue;
+  with pBar do
+  begin
+    Appearance.BackGroundFill.Color := clHotLight;
+    Appearance.BackGroundFill.ColorTo := clHotLight;
+    Appearance.BackGroundFill.ColorMirror := clNone;
+    Appearance.BackGroundFill.ColorMirrorTo := clNone;
+    Appearance.BackGroundFill.BorderColor := clSilver;
+
+    Appearance.ProgressFill.Color := clSkyBlue;
+    Appearance.ProgressFill.ColorTo := clSkyBlue;
+    Appearance.ProgressFill.ColorMirror := clSkyBlue;
+    Appearance.ProgressFill.ColorMirrorTo := clSkyBlue;
+    Appearance.ProgressFill.BorderColor := clSkyBlue;
+
+  end;
+
   pBar.Appearance.ValueFormat := ExtractFileName(fName) + ' ' + pBar.Appearance.ValueFormat;
   pBar.Appearance.ValueVisible := True;
 end;
@@ -310,7 +333,8 @@ end;
 
 procedure TGoogle.TGet.pBarWork;
 begin
-  pBar.Position := 100 * pBarPos / pBarMax;
+  if pBarMax > 0 then
+    pBar.Position := 100 * pBarPos / pBarMax;
 end;
 
 procedure TGoogle.TGet.Work(ASender: TObject; AWorkMode: TWorkMode;
@@ -318,18 +342,6 @@ procedure TGoogle.TGet.Work(ASender: TObject; AWorkMode: TWorkMode;
 begin
   pBarPos := AWorkCount;
   Synchronize(pBarWork);
-end;
-
-procedure TGoogle.TGet.pBarWorkBegin;
-begin
-  pBar.Position := 0;
-end;
-
-procedure TGoogle.TGet.WorkBegin(ASender: TObject; AWorkMode: TWorkMode;
-  AWorkCountMax: Int64);
-begin
-  pBarMax := AWorkCountMax;
-  Synchronize(pBarWorkBegin);
 end;
 
 procedure TGoogle.TGet.pBarWorkEnd;

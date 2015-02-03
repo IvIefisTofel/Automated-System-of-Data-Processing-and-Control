@@ -46,7 +46,7 @@ type
   private
     function GetAutoRun: Boolean;
     procedure SetAutoRun(Value: Boolean);
-    procedure OnGetImage(Stream: TMemoryStream);
+    procedure OnGetImage(Stream: TStream);
   public
     procedure downloadImage(url: String; Image: TImage);
     property AutoRun: Boolean read GetAutoRun write SetAutoRun;
@@ -91,6 +91,8 @@ end;
 procedure TData.GoVKClick(Sender: TObject);
 begin
   ShellExecute(0, 'open', PChar('http://vk.com/club' + user.groupID), nil, nil, SW_SHOW);
+  if Main.Visible then
+    Main.Hide;
 end;
 
 procedure TData.ShowTimeTableClick(Sender: TObject);
@@ -139,7 +141,7 @@ end;
 
 { updateNews }
 
-procedure TData.OnGetImage(Stream: TMemoryStream);
+procedure TData.OnGetImage(Stream: TStream);
 var
   sImgExt: String;
   jImg: TJPEGImage;

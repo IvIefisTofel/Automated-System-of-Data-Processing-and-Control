@@ -34,7 +34,7 @@ type
   public
     procedure LoadWatsNew;
     procedure updateWatsNew(const ShowAfterUpdate: Boolean = False);
-    procedure OnLoadFile(Stream: TMemoryStream);
+    procedure OnLoadFile(Stream: TStream);
   end;
 
 var
@@ -59,17 +59,17 @@ end;
 
 procedure TWatsNew.LoadWatsNew;
 begin
-  WatsNew.News.Lines.LoadFromFile('cache\watsnew.txt');
+  WatsNew.News.Lines.LoadFromFile(saveTo + '\watsnew.txt');
 
   WatsNewLoaded := True;
 end;
 
-procedure TWatsNew.OnLoadFile(Stream: TMemoryStream);
+procedure TWatsNew.OnLoadFile(Stream: TStream);
 var
   Reg: TRegistry;
 begin
-  if not DirectoryExists(ExtractFilePath(ParamStr(0)) + 'cache') then
-    CreateDir(ExtractFilePath(ParamStr(0)) + 'cache');
+  if not DirectoryExists(saveTo) then
+    CreateDir(saveTo);
 
   Reg := TRegistry.Create;
   Reg.RootKey := HKEY_CURRENT_USER;
@@ -78,7 +78,7 @@ begin
   Reg.CloseKey;
   Reg.Free;
 
-  Stream.SaveToFile('cache\watsnew.txt');
+  (Stream as TMemoryStream).SaveToFile(saveTo + '\watsnew.txt');
 
   LoadWatsNew;
   WatsNewLoaded := True;
@@ -120,7 +120,7 @@ begin
     jObj := (TJSONObject.ParseJSONValue(UTF8ToString(Response.DataString)) as TJSONObject);
     Response.Clear;
     if (ServerDateToDateTime((jObj.Get('modifiedDate').JsonValue as TJSONString).Value) > UpdateDate)
-      or not FileExists('cache\watsnew.txt') then
+      or not FileExists(saveTo + '\watsnew.txt') then
     begin
       Google.Get((jObj.Get('downloadUrl').JsonValue as TJSONString).Value, WatsNew.OnLoadFile);
 

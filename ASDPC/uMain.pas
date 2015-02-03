@@ -10,7 +10,7 @@ uses
   uAuth, uUpdater, uNewsLoader;
 
 const
-  gID = '57893525';
+  gID = '76551083';
 
 type
   TASDPC_Main = class(TForm)
@@ -50,6 +50,8 @@ var
   Updater: TUpdater;
   NewsLoader: TNewsLoader;
   RepeatNews: TRepeatNews;
+
+  saveTo: String;
 
 implementation
 
@@ -112,6 +114,8 @@ begin
   RepeatNews := TRepeatNews.Create(True);
   RepeatNews.Priority := tpNormal;
   RepeatNews.FreeOnTerminate := False;
+
+  saveTo := GetEnvironmentVariable('TEMP') + '\asdpc_cache'
 end;
 
 procedure TASDPC_Main.FormShow(Sender: TObject);

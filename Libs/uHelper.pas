@@ -185,31 +185,22 @@ begin
   begin
     for i := 0 to allFiles.Count - 1 do
     begin
-      if Copy(allFiles[i], 2, 8) =  'system32' then
-      begin
-        allFiles[i] := GetSystemDir + '\' + Ini.ReadString('ASDPC', allFiles[i], '');
-        fPath := allFiles[i];
-      end else
-      begin
-        allFiles[i] := Ini.ReadString('ASDPC', allFiles[i], '');
-        fPath := userApp.appDir + allFiles[i];
-      end;
+      allFiles[i] := Ini.ReadString('ASDPC', allFiles[i], '');
+      fPath := userApp.appDir + allFiles[i];
 
-      Wow64DisableWow64FsRedirection(nil);
       if FileExists(fPath) then
         dDrive := FileDateToDateTime(FileAge(fPath))
       else
         dDrive := StrToDate('30.01.1880');
-      Wow64RevertWow64FsRedirection(True);
 
       for j := 0 to Count - 1 do
         if Items[j].Title = ExtractFileName(allFiles[i]) then
         begin
           dCloud := Items[j].ModifedDate;
+          if dCloud > dDrive then
+            Strings.Add(allFiles[i]);
           Break;
         end;
-      if dCloud > dDrive then
-        Strings.Add(allFiles[i]);
     end;
     userApp.appName := allFiles[0];
   end;

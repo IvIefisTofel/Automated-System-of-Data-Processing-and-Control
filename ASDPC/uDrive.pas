@@ -58,6 +58,7 @@ const
 var
   currentDir: String;
   jCurDir: TJSONArray;
+  curFileSize: Int64;
 
 implementation
 
@@ -102,6 +103,7 @@ begin
       begin
         Label1.Caption := ((jCurDir.Get(ListView1.Items[ListView1.ItemIndex].StateIndex) as TJSONObject).Get('title').JsonValue as TJSONString).Value + ' (' +
           FloatToStr(RoundTo(StrToFloat(((jCurDir.Get(ListView1.Items[ListView1.ItemIndex].StateIndex) as TJSONObject).Get('fileSize').JsonValue as TJSONString).Value) / 1024, -2)) + ' Kb)';
+        curFileSize := StrToInt64(((jCurDir.Get(ListView1.Items[ListView1.ItemIndex].StateIndex) as TJSONObject).Get('fileSize').JsonValue as TJSONString).Value);
         BitBtn1.Tag := ListView1.ItemIndex;
         BitBtn1.Enabled := True;
       end else
@@ -209,6 +211,7 @@ begin
     pBarParams.Width := ListView1.Width;
     pBarParams.BeforeCreate := BeforePBarCreate;
     pBarParams.AfterDestroy := AfterPBarDestroy;
+    pBarParams.Size := curFileSize;
 
     Google.GetFile(url, fName, pBarParams, True, nil);
   end;
